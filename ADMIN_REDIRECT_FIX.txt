@@ -1,0 +1,54 @@
+ADMIN REDIRECT ISSUE - QUICK FIX
+
+Problem: Admin user (admin@unifee.com) is being redirected to student dashboard instead of admin dashboard
+
+Root Cause: The admin user exists in auth.users but NO staff_profiles record is linked to them. So the login flow:
+1. Checks staff_profiles for admin - FINDS NOTHING
+2. Falls back to check student_profiles - creates one automatically
+3. Redirects to student dashboard
+
+Solution: Create a staff_profiles record for your admin user
+
+Steps:
+1. Stop your dev server (Ctrl+C)
+
+2. Open Supabase Dashboard → SQL Editor
+
+3. Run this query FIRST to get the admin user ID:
+   SELECT id, email FROM auth.users WHERE email = 'admin@unifee.com';
+   
+   Copy the UUID (looks like: a1b2c3d4-e5f6-7890-abcd-ef1234567890)
+
+4. Run this query with the UUID you copied:
+   INSERT INTO public.staff_profiles (id, role, department)
+   VALUES ('PASTE_YOUR_UUID_HERE', 'Admin', 'Administration');
+
+5. Verify it worked:
+   SELECT id, role, department FROM public.staff_profiles WHERE role = 'Admin';
+   
+   You should see one row with your UUID
+
+6. Restart your dev server:
+   npm run dev
+
+7. Test login at http://localhost:3000
+   Email: admin@unifee.com
+   Password: Admin@123456
+   
+   Expected: Redirected to /admin/dashboard
+
+Debug Info:
+- Open browser console (F12 > Console)
+- Look for messages starting with "[v0]"
+- You should see: "[v0] Admin user detected with role: Admin redirecting to admin dashboard"
+
+If still redirecting to student dashboard:
+- Check browser console for errors
+- Verify staff_profiles record exists (query #5 above)
+- Clear browser cookies and try again
+- Restart dev server
+
+Files involved:
+- /components/auth-modals.tsx - Login logic (checks staff_profiles first)
+- /scripts/001_create_schema.sql - staff_profiles table definition
+- /scripts/005_create_admin_profile.sql - SQL template for creating admin profile
