@@ -1,0 +1,105 @@
+✅ QUICK START - DATABASE SETUP
+
+Your Supabase credentials are already set in .env.local
+
+Now you need to create the database tables. Follow these steps:
+
+═══════════════════════════════════════════════════════════════
+
+STEP 1: Go to Supabase SQL Editor
+───────────────────────────────────
+1. Open: https://supabase.com/dashboard
+2. Select your project (hvpxqlizqswuqvhpwlhn)
+3. Click "SQL Editor" in left sidebar
+4. Click "New Query"
+
+═══════════════════════════════════════════════════════════════
+
+STEP 2: Copy & Paste the Complete SQL Script
+──────────────────────────────────────────────
+
+You have 3 SQL migration files ready to execute:
+
+📄 scripts/001_create_schema.sql    ← Main tables & RLS policies
+📄 scripts/002_add_student_profiles.sql  ← Student metadata table
+📄 scripts/003_fix_rls_policies.sql      ← Fixed RLS policies
+
+Copy the ENTIRE content from each file in order:
+  1. Copy all content from scripts/001_create_schema.sql
+  2. Paste into Supabase SQL Editor
+  3. Click "Run"
+  4. Repeat for files 002 and 003
+
+═══════════════════════════════════════════════════════════════
+
+STEP 3: Verify Tables Created
+──────────────────────────────
+
+Run this query in SQL Editor to verify:
+
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'public'
+ORDER BY table_name;
+
+You should see these tables:
+  ✓ audit_logs
+  ✓ batch_fee_config
+  ✓ batch_permission_templates
+  ✓ batches
+  ✓ fee_submissions
+  ✓ permission_slips
+  ✓ staff_profiles
+  ✓ student_profiles
+  ✓ students
+  ✓ uploaded_receipts
+
+═══════════════════════════════════════════════════════════════
+
+STEP 4: Create First Admin User
+────────────────────────────────
+
+1. In Supabase Dashboard → Authentication → Users
+2. Click "Add user"
+3. Email: admin@unifee.com
+4. Password: Admin@123456
+5. Click "Create user"
+
+═══════════════════════════════════════════════════════════════
+
+STEP 5: Link Admin User to Staff Profile
+──────────────────────────────────────────
+
+In Supabase SQL Editor, run this query:
+
+  SELECT id, email FROM auth.users WHERE email = 'admin@unifee.com';
+
+Copy the UUID from the result, then run:
+
+  INSERT INTO public.staff_profiles (id, role, department)
+  VALUES ('PASTE_UUID_HERE', 'Admin', 'Administration')
+  ON CONFLICT (id) DO NOTHING;
+
+Replace PASTE_UUID_HERE with the actual UUID
+
+═══════════════════════════════════════════════════════════════
+
+STEP 6: Run Your App Locally
+─────────────────────────────
+
+npm install
+npm run dev
+
+Open: http://localhost:3000
+
+═══════════════════════════════════════════════════════════════
+
+STEP 7: Test Admin Login
+────────────────────────
+
+Email: admin@unifee.com
+Password: Admin@123456
+
+Expected: Redirects to /admin/dashboard ✅
+
+═══════════════════════════════════════════════════════════════
