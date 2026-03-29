@@ -1,5 +1,17 @@
 # University Fee & Exam Permission System - Setup Guide
 
+## ✅ Authentication Fix Applied
+
+**Fixed Issue:** Admin users were being redirected to student dashboard instead of admin dashboard.
+
+**Changes Made:**
+- Fixed LoginModal to correctly identify admin users using `.maybeSingle()` instead of `.single()`
+- Fixed ProtectedRoute component for better role validation
+- Added debug logging to help troubleshoot authentication issues
+- See `ADMIN_AUTH_FIX.md` for detailed technical changes
+
+---
+
 ## Important: Disable Email Verification in Supabase
 
 **This step must be completed for the system to work properly without email verification.**
@@ -15,45 +27,95 @@ This allows users to sign up and log in immediately without needing to confirm t
 
 Since admin accounts cannot be created through the regular signup process, follow these steps:
 
-### Option 1: Using the Admin Creation Page (Recommended)
+### Required Steps:
 
-1. **First Admin Setup**: You'll need to manually create the first admin account using SQL:
+1. **Step 1: Create Admin User in Supabase Auth**
+   - Go to **Supabase Dashboard** → **Authentication** → **Users**
+   - Click **Add user**
+   - Email: `admin@unifee.com` (or your preferred admin email)
+   - Password: `Admin@123456` (or a strong password of your choice)
+   - Click **Create user**
 
-```sql
--- Run this in Supabase SQL Editor
+2. **Step 2: Get Admin User ID**
+   - Find the newly created admin user in the users list
+   - Click on the user to view details
+   - Copy the **User ID** (UUID format)
 
--- Create a test admin user via auth
--- Note: You'll still need to use the Supabase dashboard to create the first user
-
--- After creating a user in Supabase Auth, insert their profile:
-INSERT INTO staff_profiles (user_id, full_name, email, role)
-VALUES (
-  'USER_ID_HERE', -- Replace with the actual user ID from auth.users
-  'Administrator',
-  'admin@university.edu',
-  'Admin'
-);
-```
-
-### Option 2: Manual Steps in Supabase
-
-1. Go to **Supabase Dashboard** → **Authentication** → **Users**
-2. Click **Add user**
-3. Enter email: `admin@university.edu`
-4. Enter password: (choose a strong password)
-5. Click **Create user**
-6. Copy the User ID from the newly created user
-7. Go to **SQL Editor** and run this query:
+3. **Step 3: Create Staff Profile Record**
+   - Go to **Supabase Dashboard** → **SQL Editor**
+   - Paste and run this query (replace UUID with the actual admin user ID):
 
 ```sql
-INSERT INTO staff_profiles (user_id, full_name, email, role)
-VALUES (
-  'PASTE_USER_ID_HERE',
-  'System Administrator',
-  'admin@university.edu',
-  'Admin'
-);
+INSERT INTO public.staff_profiles (id, role, department)
+VALUES ('PASTE_ADMIN_USER_ID_HERE', 'Admin', 'Administration')
+ON CONFLICT (id) DO NOTHING;
 ```
+
+Example with actual UUID:
+```sql
+INSERT INTO public.staff_profiles (id, role, department)
+VALUES ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'Admin', 'Administration')
+ON CONFLICT (id) DO NOTHING;
+```
+
+### Verify Setup (Optional):
+
+Run this SQL to verify everything is correct:
+```sql
+-- Check if admin user exists
+SELECT id, email FROM auth.users WHERE email = 'admin@unifee.com';
+
+-- Check if staff profile exists
+SELECT id, role, department FROM public.staff_profiles WHERE role = 'Admin';
+```
+
+You should see one row in each result.
+
+## Running the Development Server
+
+```bash
+# Install dependencies (if not already done)
+npm install
+
+# Start the development server
+npm run dev
+```
+
+The project will be available at **http://localhost:3000**
+
+### First Time Setup Checklist:
+- ✅ Supabase project connected
+- ✅ Email verification disabled in Supabase
+- ✅ Admin user created in Supabase Auth
+- ✅ Staff profile record inserted in database
+- ✅ Dependencies installed
+- ✅ Dev server running
+
+## Testing the Admin Login (With Authentication Fix)
+
+1. Open **http://localhost:3000**
+2. Click **"Sign In"**
+3. Enter credentials:
+   - Email: `admin@unifee.com`
+   - Password: `Admin@123456`
+4. Click **"Sign In"**
+5. ✅ **Expected Result:** You should be redirected to `/admin/dashboard`
+
+**Debug Info:** Open browser console (F12 > Console) and look for messages like:
+```
+[v0] Staff profile check: { staffProfile: { id: 'xxx', role: 'Admin' }, staffError: null, userId: 'xxx' }
+[v0] Admin user detected with role: Admin redirecting to admin dashboard
+```
+
+### If Still Redirected to Student Dashboard:
+
+1. Check browser console for error messages (prefixed with `[v0]`)
+2. Verify admin user ID in Supabase Auth
+3. Verify staff_profiles record exists with correct UUID
+4. Try clearing browser cookies and logging in again
+5. Restart the dev server
+
+See `ADMIN_AUTH_FIX.md` for detailed troubleshooting.
 
 ## Creating Additional Staff Accounts
 
