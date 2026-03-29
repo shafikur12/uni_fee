@@ -14,9 +14,9 @@ export function ProtectedRoute({ children, requiredRole?: string }: { children: 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
         if (!session) {
           router.push('/auth/login')
@@ -29,7 +29,7 @@ export function ProtectedRoute({ children, requiredRole?: string }: { children: 
             .from('staff_profiles')
             .select('role')
             .eq('id', session.user.id)
-            .single()
+            .maybeSingle()
 
           if (staffProfile?.role === requiredRole) {
             setAuthorized(true)
@@ -37,14 +37,20 @@ export function ProtectedRoute({ children, requiredRole?: string }: { children: 
             return
           }
 
+          // If required role is 'Admin' or staff role, but staff profile doesn't match, deny access
+          if (requiredRole === 'Admin' || requiredRole === 'Accountant' || requiredRole === 'Registrar') {
+            router.push('/auth/login')
+            return
+          }
+
           // Check student profile
           const { data: studentProfile } = await supabase
             .from('student_profiles')
-            .select('role')
+            .select('id')
             .eq('id', session.user.id)
-            .single()
+            .maybeSingle()
 
-          if (studentProfile?.role !== requiredRole) {
+          if (studentProfile?.id !== session.user.id) {
             router.push('/auth/login')
             return
           }

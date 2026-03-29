@@ -55,31 +55,31 @@ export function LoginModal({
           .from('staff_profiles')
           .select('role')
           .eq('id', data.user.id)
-          .single()
+          .maybeSingle()
 
         console.log("[v0] Staff profile check:", { staffProfile, staffError, userId: data.user.id })
 
-        // If staff profile exists, redirect to admin dashboard
-        if (staffProfile?.role) {
-          console.log("[v0] Admin user detected, redirecting to admin dashboard")
+        // If staff profile exists with a valid role, redirect to admin dashboard
+        if (staffProfile && staffProfile.role) {
+          console.log("[v0] Admin user detected with role:", staffProfile.role, "redirecting to admin dashboard")
           window.location.href = '/admin/dashboard'
           return
         }
 
-        // Otherwise check student profile (select only id, not role)
+        // Otherwise check student profile
         const { data: studentProfile, error: studentError } = await supabase
           .from('student_profiles')
           .select('id')
           .eq('id', data.user.id)
-          .single()
+          .maybeSingle()
 
         console.log("[v0] Student profile check:", { studentProfile, studentError, userId: data.user.id })
 
-        if (studentProfile?.id) {
+        if (studentProfile && studentProfile.id) {
           console.log("[v0] Student user detected, redirecting to student dashboard")
           window.location.href = '/student/dashboard'
         } else {
-          console.log("[v0] No profile found for user:", data.user.id)
+          console.log("[v0] No profile found for user:", data.user.id, "Staff profile:", staffProfile, "Student profile:", studentProfile)
           setError('User profile not found. Please contact support.')
         }
       }
