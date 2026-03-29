@@ -1,0 +1,52 @@
+⚡ QUICK START - 5 MINUTES ⚡
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣ GET SUPABASE CREDENTIALS
+   - Go to: supabase.com/dashboard → Your Project
+   - Settings → API
+   - Copy: URL, anon key, service role key
+
+2️⃣ CREATE .env.local FILE
+   In project root, create file ".env.local":
+   
+   NEXT_PUBLIC_SUPABASE_URL=<your_url_here>
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<your_key_here>
+   SUPABASE_SERVICE_ROLE_KEY=<your_service_key_here>
+
+3️⃣ CREATE DATABASE TABLES
+   - Option A (Easy): Go to Supabase → SQL Editor
+     - Copy entire content from: scripts/001_create_schema.sql
+     - Paste and click Run
+   
+   - Option B: Run command
+     npm install
+     node scripts/setup-database.mjs
+
+4️⃣ CREATE ADMIN USER (in Supabase SQL Editor)
+   INSERT INTO public.staff_profiles (id, role, department)
+   SELECT id, 'Admin', 'Administration'
+   FROM auth.users
+   WHERE email = 'admin@unifee.com';
+
+5️⃣ START PROJECT
+   npm install
+   npm run dev
+   
+   Open: http://localhost:3000
+   
+   Login with:
+   Email: admin@unifee.com
+   Password: Admin@123456
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Expected: Redirect to /admin/dashboard
+
+❌ Problems?
+   - Missing .env.local? Create it with Supabase credentials
+   - SQL errors? Make sure you ran the 001_create_schema.sql
+   - Still at student dashboard? Create staff_profiles record
+   - Open F12 console, look for [v0] debug messages
+
+📖 Full guide: COMPLETE_LOCAL_SETUP.md
