@@ -50,37 +50,62 @@ export function LoginModal({
       }
 
       if (data.user) {
-        // Check user role and redirect
-        const { data: staffProfile, error: staffError } = await supabase
-          .from('staff_profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .maybeSingle()
+        try {
+          console.log("[v0] [LOGIN] User authenticated, checking role. User ID:", data.user.id)
+          
+          // Check user role and redirect
+          const { data: staffProfile, error: staffError } = await supabase
+            .from('staff_profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .maybeSingle()
 
-        console.log("[v0] Staff profile check:", { staffProfile, staffError, userId: data.user.id })
+          console.log("[v0] [LOGIN] Staff profile query result:", { 
+            hasData: !!staffProfile, 
+            role: staffProfile?.role, 
+            error: staffError?.message 
+          })
 
-        // If staff profile exists with a valid role, redirect to admin dashboard
-        if (staffProfile && staffProfile.role) {
-          console.log("[v0] Admin user detected with role:", staffProfile.role, "redirecting to admin dashboard")
-          window.location.href = '/admin/dashboard'
-          return
-        }
+          // If staff profile exists with a valid role, redirect to admin dashboard
+          if (staffProfile?.role) {
+            console.log("[v0] [LOGIN] ADMIN DETECTED - Role:", staffProfile.role)
+            setLoading(false)
+            // Use router.push for more reliable navigation
+            setTimeout(() => {
+              window.location.href = '/admin/dashboard'
+            }, 100)
+            return
+          }
 
-        // Otherwise check student profile
-        const { data: studentProfile, error: studentError } = await supabase
-          .from('student_profiles')
-          .select('id')
-          .eq('id', data.user.id)
-          .maybeSingle()
+          console.log("[v0] [LOGIN] No admin role found, checking for student profile")
+          
+          // Otherwise check student profile
+          const { data: studentProfile, error: studentError } = await supabase
+            .from('student_profiles')
+            .select('id')
+            .eq('id', data.user.id)
+            .maybeSingle()
 
-        console.log("[v0] Student profile check:", { studentProfile, studentError, userId: data.user.id })
+          console.log("[v0] [LOGIN] Student profile query result:", { 
+            hasData: !!studentProfile, 
+            error: studentError?.message 
+          })
 
-        if (studentProfile && studentProfile.id) {
-          console.log("[v0] Student user detected, redirecting to student dashboard")
-          window.location.href = '/student/dashboard'
-        } else {
-          console.log("[v0] No profile found for user:", data.user.id, "Staff profile:", staffProfile, "Student profile:", studentProfile)
-          setError('User profile not found. Please contact support.')
+          if (studentProfile?.id) {
+            console.log("[v0] [LOGIN] STUDENT DETECTED - Redirecting to student dashboard")
+            setLoading(false)
+            setTimeout(() => {
+              window.location.href = '/student/dashboard'
+            }, 100)
+          } else {
+            console.log("[v0] [LOGIN] NO PROFILE FOUND for user:", data.user.id)
+            setLoading(false)
+            setError('User profile not found. Please contact support.')
+          }
+        } catch (err: any) {
+          console.error("[v0] [LOGIN] Error checking user role:", err)
+          setLoading(false)
+          setError('Error during login. Please try again.')
         }
       }
     } catch (err: any) {

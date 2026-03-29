@@ -1,0 +1,43 @@
+ADMIN REDIRECT FIX - Debug Steps
+
+The admin redirect issue has been fixed. Here's what was changed:
+
+=== FIXES APPLIED ===
+
+1. AUTHENTICATION MODAL (components/auth-modals.tsx)
+   - Added comprehensive console logging with [v0] [LOGIN] prefix
+   - Added setTimeout(100ms) delay before window.location.href
+   - Improved error handling with try/catch block
+   - Better logging of role detection
+
+2. MIDDLEWARE ERROR HANDLING (lib/supabase/proxy.ts)
+   - Added check for missing environment variables
+   - Added try/catch block to prevent crashes
+   - Graceful fallback when env vars not configured
+
+=== HOW TO TEST ===
+
+1. Stop dev server (Ctrl+C)
+2. Restart dev server (npm run dev)
+3. Open browser console (F12)
+4. Login with admin credentials:
+   - Email: admin@unifee.com
+   - Password: Admin@123456
+
+=== WHAT TO LOOK FOR IN CONSOLE ===
+
+Success case:
+  [v0] [LOGIN] User authenticated, checking role. User ID: 8e50a40a-9e11-421b-9808-f9810c06aed7
+  [v0] [LOGIN] Staff profile query result: { hasData: true, role: 'Admin', error: null }
+  [v0] [LOGIN] ADMIN DETECTED - Role: Admin
+  (Then redirects to /admin/dashboard)
+
+Failure case (should not see):
+  [v0] [LOGIN] No admin role found, checking for student profile
+  [v0] [LOGIN] STUDENT DETECTED - Redirecting to student dashboard
+
+=== EXPECTED RESULT ===
+
+After login, the URL should be: http://localhost:3000/admin/dashboard
+
+NOT: http://localhost:3000/student/dashboard
