@@ -17,12 +17,12 @@ export default async function AdminDashboard() {
 
   const supabase = await createClient()
 
-  // Get user role from staff profiles
+  // Get user role from staff profiles (id matches auth user id)
   const { data: profile } = await supabase
     .from('staff_profiles')
     .select('role')
-    .eq('user_id', user.id)
-    .single()
+    .eq('id', user.id)
+    .maybeSingle()
 
   if (profile?.role !== 'Admin' && profile?.role !== 'Accountant' && profile?.role !== 'Registrar') {
     redirect('/student/dashboard')
