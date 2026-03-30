@@ -17,11 +17,12 @@ export default async function AuditLogsPage() {
 
   const supabase = await createClient()
 
+  // id matches auth user id
   const { data: profile } = await supabase
     .from('staff_profiles')
     .select('role')
-    .eq('user_id', user.id)
-    .single()
+    .eq('id', user.id)
+    .maybeSingle()
 
   if (profile?.role !== 'Admin') {
     redirect('/admin/dashboard')

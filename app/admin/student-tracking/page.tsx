@@ -17,11 +17,12 @@ export default async function StudentTrackingPage() {
 
   const supabase = await createClient()
 
+  // id matches auth user id
   const { data: profile } = await supabase
     .from('staff_profiles')
     .select('role')
-    .eq('user_id', user.id)
-    .single()
+    .eq('id', user.id)
+    .maybeSingle()
 
   if (!['Admin', 'Registrar'].includes(profile?.role || '')) {
     redirect('/admin/dashboard')
