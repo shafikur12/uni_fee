@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -26,6 +27,7 @@ export function LoginModal({
   onClose: () => void
   onSwitchToSignup: () => void
 }) {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -44,40 +46,46 @@ export function LoginModal({
       })
 
       if (error) {
+        console.error('[v0] [LOGIN] Auth error:', error.message)
         setError(error.message)
         setLoading(false)
         return
       }
 
       if (data.user) {
+        console.log('[v0] [LOGIN] User authenticated, checking role. User ID:', data.user.id)
+        
         try {
-          console.log("[v0] [LOGIN] User authenticated, checking role. User ID:", data.user.id)
-          
-          // Check user role and redirect
+          // First, check staff profiles table with explicit query
           const { data: staffProfile, error: staffError } = await supabase
             .from('staff_profiles')
             .select('role')
             .eq('id', data.user.id)
             .maybeSingle()
 
-          console.log("[v0] [LOGIN] Staff profile query result:", { 
-            hasData: !!staffProfile, 
-            role: staffProfile?.role, 
+          console.log('[v0] [LOGIN] Staff profile query result:', { 
+            found: !!staffProfile,
+            role: staffProfile?.role,
             error: staffError?.message 
           })
 
-          // If staff profile exists with a valid role, redirect to admin dashboard
-          if (staffProfile?.role) {
-            console.log("[v0] [LOGIN] ADMIN DETECTED - Role:", staffProfile.role)
-            setLoading(false)
-            // Use router.push for more reliable navigation
-            setTimeout(() => {
-              window.location.href = '/admin/dashboard'
-            }, 100)
+          // If admin role found, redirect to admin dashboard
+          if (staffProfile && staffProfile.role === 'Admin') {
+            console.log('[v0] [LOGIN] ADMIN USER DETECTED - Redirecting to admin dashboard')
+            await new Promise(resolve => setTimeout(resolve, 500)) // Ensure auth state updates
+            router.push('/admin/dashboard')
             return
           }
 
-          console.log("[v0] [LOGIN] No admin role found, checking for student profile")
+          // Check for other staff roles
+          if (staffProfile && staffProfile.role) {
+            console.log('[v0] [LOGIN] STAFF USER DETECTED - Role:', staffProfile.role, '- Redirecting to admin dashboard')
+            await new Promise(resolve => setTimeout(resolve, 500))
+            router.push('/admin/dashboard')
+            return
+          }
+
+          console.log('[v0] [LOGIN] No staff role found, checking for student profile')
           
           // Otherwise check student profile
           const { data: studentProfile, error: studentError } = await supabase
@@ -86,30 +94,31 @@ export function LoginModal({
             .eq('id', data.user.id)
             .maybeSingle()
 
-          console.log("[v0] [LOGIN] Student profile query result:", { 
-            hasData: !!studentProfile, 
+          console.log('[v0] [LOGIN] Student profile query result:', { 
+            found: !!studentProfile,
             error: studentError?.message 
           })
 
-          if (studentProfile?.id) {
-            console.log("[v0] [LOGIN] STUDENT DETECTED - Redirecting to student dashboard")
-            setLoading(false)
-            setTimeout(() => {
-              window.location.href = '/student/dashboard'
-            }, 100)
-          } else {
-            console.log("[v0] [LOGIN] NO PROFILE FOUND for user:", data.user.id)
-            setLoading(false)
-            setError('User profile not found. Please contact support.')
+          if (studentProfile) {
+            console.log('[v0] [LOGIN] STUDENT USER DETECTED - Redirecting to student dashboard')
+            await new Promise(resolve => setTimeout(resolve, 500))
+            router.push('/student/dashboard')
+            return
           }
-        } catch (err: any) {
-          console.error("[v0] [LOGIN] Error checking user role:", err)
+
+          // No profile found
+          console.log('[v0] [LOGIN] NO PROFILE FOUND for user:', data.user.id)
           setLoading(false)
-          setError('Error during login. Please try again.')
+          setError('User profile not found. Please contact support.')
+        } catch (roleCheckError: any) {
+          console.error('[v0] [LOGIN] Error checking user role:', roleCheckError)
+          setLoading(false)
+          setError('Error determining user role. Please try again.')
         }
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      console.error('[v0] [LOGIN] Unexpected error:', err)
+      setError(err.message || 'An error occurred during login')
       setLoading(false)
     }
   }

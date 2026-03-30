@@ -1,0 +1,578 @@
+UNIFEE - UNIVERSITY FEE & EXAM PERMISSION SYSTEM
+Product Requirements Document (PRD)
+Version 1.0
+Last Updated: March 30, 2026
+
+================================================================================
+1. EXECUTIVE SUMMARY
+================================================================================
+
+UniFee is a comprehensive digital platform designed to streamline university fee 
+management and exam permission slip distribution. The system facilitates seamless 
+communication between students, administrative staff, and accountants, ensuring 
+transparent fee tracking, instant exam eligibility verification, and automated 
+permission slip generation.
+
+Key Value Propositions:
+- Eliminates manual fee collection processes
+- Provides real-time payment status and exam eligibility tracking
+- Automates exam permission slip approval workflow
+- Reduces administrative overhead and paperwork
+- Enhances transparency and accountability
+
+================================================================================
+2. PRODUCT VISION
+================================================================================
+
+"Empower universities to manage student fees efficiently and fairly, enabling 
+instant exam permission while maintaining complete financial transparency."
+
+Target Users:
+- Students: Submit fees and receive instant exam permission slips
+- Accountants: Track payments and verify fee submissions
+- Registrars/Administrators: Manage exam permissions and system configuration
+- System Administrators: Oversee platform operations and staff accounts
+
+================================================================================
+3. CORE FEATURES & REQUIREMENTS
+================================================================================
+
+3.1 AUTHENTICATION & USER MANAGEMENT
+────────────────────────────────────
+
+3.1.1 Student Authentication
+- Sign up: Email, password, full name, student ID, batch code
+- Email verification (optional, can be disabled for faster access)
+- Login with email/password
+- Session management with Supabase Auth
+- Password reset functionality
+- Account security (bcrypt password hashing)
+
+3.1.2 Staff Authentication
+- Admin staff created manually (no public signup)
+- Three roles: Admin, Accountant, Registrar
+- Login with email/password
+- Custom staff profile creation
+- Role-based access control (RBAC)
+- Persistent sessions with secure cookies
+
+3.1.3 Database Schema
+Students Table (auth.users):
+- id (UUID, primary key)
+- email (unique)
+- encrypted_password
+- created_at
+- updated_at
+
+Student Profiles Table:
+- id (UUID, foreign key to auth.users)
+- full_name
+- student_id (roll number)
+- batch_id (references batches table)
+- email (reference)
+- created_at
+- updated_at
+
+Staff Profiles Table:
+- id (UUID, foreign key to auth.users)
+- role (Admin, Accountant, Registrar)
+- department
+- assigned_batches (JSON array)
+- created_at
+- updated_at
+
+Batches Table:
+- id (UUID, primary key)
+- batch_code (e.g., "BATCH-2024-01")
+- batch_name
+- status (Active, Inactive)
+- created_at
+
+================================================================================
+3.2 STUDENT FEATURES
+────────────────────
+
+3.2.1 Dashboard
+- Display student information (name, ID, batch)
+- Show current fee payment status
+- Show exam eligibility status (Approved/Not Approved)
+- Quick action buttons for uploading receipts and checking submission history
+
+3.2.2 Fee Submission
+- Upload payment receipt/proof
+- Receipt validation (image formats: PNG, JPG, PDF)
+- Automatic receipt storage in Vercel Blob storage
+- Submission timestamp and status tracking
+- Receipt gallery/history view
+
+3.2.3 Exam Permission Slip
+- View current exam permission status
+- Download permission slip (PDF format)
+- Track permission requests and approvals
+- Display approval timestamp and approver details
+
+3.2.4 Submission History
+- Chronological list of all submissions
+- Receipt status (Pending, Approved, Rejected)
+- Filter by date range or status
+- Download copies of approved receipts
+
+================================================================================
+3.3 ACCOUNTANT FEATURES
+──────────────────────
+
+3.3.1 Dashboard
+- Overview of pending fee submissions
+- Statistics: Total submissions, Approved/Rejected counts
+- Filter by batch, date, or student
+
+3.3.2 Fee Review & Verification
+- View submitted receipts
+- Mark fees as Approved or Rejected
+- Add comments/notes for rejections
+- Send automated notifications to students
+- Batch approval/rejection processing
+
+3.3.3 Payment Tracking
+- List all student fee submissions
+- Status dashboard (Pending, Approved, Rejected)
+- Generate revenue reports
+- Export fee data for accounting systems
+
+================================================================================
+3.4 REGISTRAR/ADMIN FEATURES
+────────────────────────────
+
+3.4.1 Exam Permission Management
+- View list of students with approved fees
+- Generate exam permission slips (PDF)
+- Approve/reject exam eligibility requests
+- Bulk permission slip generation
+- Archive and historical records
+
+3.4.2 System Administration
+- Create and manage admin staff accounts
+- Assign roles and permissions
+- Manage batch information (create, activate, deactivate)
+- View system logs and audit trail
+- Configure system settings
+
+3.4.3 Reporting & Analytics
+- Fee collection dashboard
+- Exam permission statistics
+- Student compliance reports
+- Staff performance metrics
+- Export reports (CSV, PDF, Excel)
+
+================================================================================
+3.5 WORKFLOW & PROCESS FLOW
+───────────────────────────
+
+Student Journey:
+1. Student registers with email, password, name, student ID, batch code
+2. Email verification (optional)
+3. Redirected to student dashboard
+4. Uploads payment receipt
+5. Accountant reviews and approves fee
+6. Student notified of approval
+7. Exam permission automatically generated
+8. Student downloads permission slip
+
+Staff Workflow:
+1. Admin creates staff accounts (manual process)
+2. Staff login redirected to appropriate dashboard based on role
+3. Accountants review receipts → Approve/Reject
+4. Registrars process exam permissions → Generate slips
+5. System generates audit logs
+
+================================================================================
+4. TECHNICAL ARCHITECTURE
+================================================================================
+
+4.1 TECH STACK
+───────────────
+Frontend:
+- Framework: Next.js 16 (App Router)
+- Styling: Tailwind CSS v4
+- UI Components: shadcn/ui, Lucide Icons
+- Animation: Framer Motion
+- Database Client: @supabase/ssr, @supabase/supabase-js
+- State Management: SWR for data fetching and caching
+- File Upload: Vercel Blob storage
+
+Backend:
+- Runtime: Node.js (Vercel Serverless)
+- API Routes: Next.js API Routes
+- Authentication: Supabase Auth
+- Database: PostgreSQL (Supabase)
+- File Storage: Vercel Blob
+- Deployment: Vercel
+
+4.2 DATABASE ARCHITECTURE
+──────────────────────────
+- PostgreSQL with Row Level Security (RLS)
+- Automatic timestamp tracking (created_at, updated_at)
+- Foreign key relationships
+- Indexed queries for performance
+- Automated backups (Supabase)
+
+4.3 SECURITY FEATURES
+──────────────────────
+- Password hashing (bcrypt via Supabase)
+- Row Level Security (RLS) policies
+- Session-based authentication (HTTP-only cookies)
+- CSRF protection via Next.js
+- Input validation and sanitization
+- SQL injection prevention (parameterized queries)
+- File upload validation
+- Rate limiting (via Vercel)
+
+================================================================================
+5. USER ROLES & PERMISSIONS
+================================================================================
+
+5.1 STUDENT
+───────────
+- View own dashboard
+- Upload payment receipts
+- View submission history
+- Download permission slip
+- View own profile
+- Update own password
+
+5.2 ACCOUNTANT
+───────────────
+- View accountant dashboard
+- Review pending fee submissions
+- Approve/reject fee submissions
+- Add notes to submissions
+- View all student submissions (assigned batches)
+- Generate fee reports
+- View own profile
+- Update own password
+
+5.3 REGISTRAR
+──────────────
+- View registrar dashboard
+- Generate exam permission slips
+- Approve/reject exam permissions
+- View approved students list
+- Generate permission reports
+- Archive completed records
+- View own profile
+- Update own password
+
+5.4 ADMIN
+──────────
+- Access admin dashboard
+- Create/manage staff accounts
+- Manage batches
+- View all system data
+- Generate system reports
+- View audit logs
+- Configure system settings
+- All registrar/accountant functions
+
+================================================================================
+6. FUNCTIONAL REQUIREMENTS
+================================================================================
+
+6.1 AUTHENTICATION & LOGIN
+──────────────────────────
+FR1: Students can create accounts with email, password, name, ID, and batch code
+FR2: Staff can login with email/password (accounts created by admin)
+FR3: Users directed to correct dashboard based on role
+FR4: Session persists across page refreshes
+FR5: Logout clears session and redirects to login page
+FR6: Password reset via email link
+FR7: Admin role redirects to /admin/dashboard
+FR8: Accountant role redirects to appropriate dashboard
+FR9: Registrar role redirects to appropriate dashboard
+FR10: Student role redirects to /student/dashboard
+
+6.2 STUDENT DASHBOARD
+─────────────────────
+FR11: Display student name, ID, and batch
+FR12: Show current fee status (Pending/Approved/Rejected)
+FR13: Show exam permission status (Approved/Pending)
+FR14: Provide quick actions (Upload Receipt, Check Status)
+FR15: Navigation tabs for Dashboard, Upload Receipt, Submission History
+
+6.3 RECEIPT UPLOAD
+───────────────────
+FR16: Students can upload image files (PNG, JPG, PDF)
+FR17: Maximum file size validation (5MB)
+FR18: File stored in Vercel Blob with unique name
+FR19: Upload timestamp recorded
+FR20: Receipt preview before submission
+FR21: Submission status updated after upload
+
+6.4 ACCOUNTANT REVIEW
+──────────────────────
+FR22: Display list of pending submissions
+FR23: Show receipt preview
+FR24: Option to approve or reject
+FR25: Add rejection reason
+FR26: Bulk approval functionality
+FR27: Email notification to student on decision
+FR28: Filter submissions by student, date, or batch
+
+6.5 EXAM PERMISSIONS
+─────────────────────
+FR29: Automatic permission generation after fee approval
+FR30: Permission slip includes student name, ID, batch, date
+FR31: Download permission slip as PDF
+FR32: Print-friendly format
+FR33: Unique permission ID for tracking
+FR34: Registrar can regenerate permissions if needed
+
+6.6 REPORTING
+───────────────
+FR35: View fee collection summary
+FR36: Generate student list by approval status
+FR37: Export data to CSV format
+FR38: View submission timeline/statistics
+FR39: Track staff actions and timestamps
+
+================================================================================
+7. NON-FUNCTIONAL REQUIREMENTS
+================================================================================
+
+7.1 PERFORMANCE
+────────────────
+NFR1: Page load time < 2 seconds
+NFR2: Search results returned < 1 second
+NFR3: File uploads complete < 5 seconds
+NFR4: Database queries optimized with indexes
+NFR5: Caching for frequently accessed data (SWR)
+
+7.2 RELIABILITY
+────────────────
+NFR6: 99.5% uptime SLA
+NFR7: Automatic error recovery
+NFR8: Graceful failure handling
+NFR9: Regular database backups (daily)
+NFR10: Disaster recovery plan in place
+
+7.3 SECURITY
+──────────────
+NFR11: All passwords hashed (bcrypt)
+NFR12: Sessions expire after 30 days of inactivity
+NFR13: SSL/TLS encryption for all data in transit
+NFR14: Data at rest encrypted (Supabase)
+NFR15: No sensitive data in logs
+NFR16: Regular security audits
+NFR17: SQL injection prevention
+NFR18: XSS protection via Content Security Policy
+
+7.4 SCALABILITY
+────────────────
+NFR19: Support 10,000+ concurrent users
+NFR20: Database query optimization for growth
+NFR21: Serverless architecture for auto-scaling
+NFR22: CDN for static asset delivery
+NFR23: Load balancing via Vercel
+
+7.5 USABILITY
+───────────────
+NFR24: Mobile-responsive design (tested on iOS/Android)
+NFR25: Intuitive navigation structure
+NFR26: Clear error messages and validation
+NFR27: Accessibility compliance (WCAG 2.1 AA)
+NFR28: Loading indicators for async operations
+
+================================================================================
+8. DATA FLOW DIAGRAM
+================================================================================
+
+Student Journey:
+┌──────────────┐
+│ Sign Up      │
+│ (Email, ID)  │
+└──────────────┘
+       │
+       ▼
+┌──────────────────────┐
+│ Student Dashboard    │
+│ Upload Receipt       │
+└──────────────────────┘
+       │
+       ▼
+┌──────────────────────┐
+│ Vercel Blob Storage  │
+│ (Receipt stored)     │
+└──────────────────────┘
+       │
+       ▼
+┌──────────────────────┐
+│ Accountant Dashboard │
+│ Review Receipt       │
+└──────────────────────┘
+       │
+       ├─ Approve ────┐
+       │              │
+       └─ Reject ─┐   │
+                  │   │
+              Notification to Student
+                  │   │
+                  │   ▼
+                  │ ┌──────────────────┐
+                  │ │ Fee Status Update │
+                  │ └──────────────────┘
+                  │   │
+                  ▼   ▼
+            ┌──────────────────────────┐
+            │ Exam Permission Slip     │
+            │ Generated & Available    │
+            └──────────────────────────┘
+                  │
+                  ▼
+            ┌──────────────────────┐
+            │ Student Downloads    │
+            │ Permission Slip      │
+            └──────────────────────┘
+
+================================================================================
+9. IMPLEMENTATION TIMELINE
+================================================================================
+
+Phase 1 (Weeks 1-2): Foundation
+- Setup project structure
+- Database schema implementation
+- Authentication system setup
+- Basic UI components
+
+Phase 2 (Weeks 3-4): Core Features
+- Student dashboard
+- Receipt upload functionality
+- Accountant review system
+- Basic notifications
+
+Phase 3 (Weeks 5-6): Admin Features
+- Staff management
+- Exam permission generation
+- Reporting system
+- Audit logging
+
+Phase 4 (Weeks 7-8): Polish & Testing
+- UI/UX refinement
+- Performance optimization
+- Security hardening
+- User testing
+- Deployment preparation
+
+Phase 5 (Week 9+): Post-Launch
+- Monitoring and maintenance
+- User feedback implementation
+- Feature enhancements
+- Scaling as needed
+
+================================================================================
+10. SUCCESS METRICS
+================================================================================
+
+KPI1: User Adoption
+- Target: 90% of students using platform within first semester
+- Measurement: Active user rate
+
+KPI2: Processing Time
+- Target: Average fee approval within 24 hours
+- Measurement: Time from upload to approval
+
+KPI3: System Reliability
+- Target: 99.5% uptime
+- Measurement: Downtime tracking
+
+KPI4: User Satisfaction
+- Target: 4.5/5 average rating
+- Measurement: User surveys and feedback
+
+KPI5: Error Rate
+- Target: < 0.1% of transactions
+- Measurement: Error logging and monitoring
+
+================================================================================
+11. RISKS & MITIGATION
+================================================================================
+
+Risk 1: Student Adoption
+- Mitigation: In-app tutorials, staff training, gradual rollout
+
+Risk 2: Data Security Breach
+- Mitigation: Regular audits, encryption, access controls, monitoring
+
+Risk 3: System Performance Degradation
+- Mitigation: Database optimization, caching, load testing, auto-scaling
+
+Risk 4: Integration Issues
+- Mitigation: Thorough testing, documentation, API contracts
+
+Risk 5: User Confusion with Workflow
+- Mitigation: Clear documentation, help desk, in-app guidance
+
+================================================================================
+12. FUTURE ENHANCEMENTS
+================================================================================
+
+Phase 2 Features:
+- Mobile app (iOS/Android)
+- SMS notifications
+- Payment gateway integration
+- Biometric authentication
+- Advanced analytics dashboard
+- Email templates customization
+- Multi-language support
+- Invoice generation
+- Refund management system
+- Third-party integrations (Google Calendar, etc.)
+
+================================================================================
+13. GLOSSARY
+================================================================================
+
+Admin: System administrator with full system access
+Batch: Academic cohort/year (e.g., Batch-2024-01)
+Fee: Tuition or registration fee required from students
+Permission Slip: Document allowing student to sit for exams
+Registrar: Staff member managing exam permissions
+Receipt: Proof of payment (image/document)
+RLS: Row Level Security (database access control)
+Student ID: Roll number or registration number
+Accountant: Staff member verifying fee payments
+
+================================================================================
+14. APPENDICES
+================================================================================
+
+14.1 API Endpoints (Future REST API)
+POST   /api/auth/signup
+POST   /api/auth/login
+POST   /api/auth/logout
+GET    /api/user/profile
+POST   /api/receipts/upload
+GET    /api/receipts/history
+POST   /api/admin/staff/create
+GET    /api/accountant/submissions
+POST   /api/accountant/approve-fee
+GET    /api/registrar/permission-slips
+POST   /api/registrar/generate-slip
+
+14.2 Database Relationships
+student_profiles ──► batches
+staff_profiles ──► (no direct table)
+receipts ──► student_profiles
+exam_permissions ──► student_profiles
+
+14.3 Environment Variables
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_SITE_URL
+VERCEL_BLOB_TOKEN
+
+================================================================================
+END OF PRODUCT REQUIREMENTS DOCUMENT
+================================================================================
+Generated: March 30, 2026
+Author: v0 AI Assistant
+Status: Final
