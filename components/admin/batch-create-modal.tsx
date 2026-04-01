@@ -21,9 +21,6 @@ export function BatchCreateModal({
   const [batchName, setBatchName] = useState('')
   const [batchCode, setBatchCode] = useState('')
   const [academicYear, setAcademicYear] = useState('')
-  const [semester, setSemester] = useState('1')
-  const [feeAmount, setFeeAmount] = useState('')
-  const [feeDeadline, setFeeDeadline] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const supabase = createClient()
@@ -32,7 +29,7 @@ export function BatchCreateModal({
     e.preventDefault()
     setError('')
 
-    if (!batchName || !batchCode || !academicYear || !feeAmount || !feeDeadline) {
+    if (!batchName || !batchCode || !academicYear) {
       setError('All fields are required')
       return
     }
@@ -44,11 +41,12 @@ export function BatchCreateModal({
         .from('batches')
         .insert({
           batch_name: batchName,
-          batch_code: batchCode,
+          batch_code: batchCode.toUpperCase(),
           academic_year: academicYear,
-          semester: parseInt(semester),
-          fee_amount: parseFloat(feeAmount),
-          fee_deadline: feeDeadline,
+          // Use safe defaults for fields no longer collected in the form
+          semester: '1',
+          fee_amount: 0,
+          fee_deadline: new Date().toISOString(),
           status: 'Active',
           created_by: userId,
           created_at: new Date().toISOString(),
@@ -119,51 +117,10 @@ export function BatchCreateModal({
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Semester
-                </label>
-                <select
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                  disabled={loading}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-                    <option key={s} value={s}>
-                      Sem {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Semester is no longer collected in the form */}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fee Amount (Rs.)
-              </label>
-              <Input
-                type="number"
-                value={feeAmount}
-                onChange={(e) => setFeeAmount(e.target.value)}
-                placeholder="0"
-                disabled={loading}
-                min="0"
-                step="0.01"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fee Deadline
-              </label>
-              <Input
-                type="date"
-                value={feeDeadline}
-                onChange={(e) => setFeeDeadline(e.target.value)}
-                disabled={loading}
-              />
-            </div>
+            {/* Fee Amount and Fee Deadline are no longer collected in the form */}
 
             <div className="flex gap-3 pt-4">
               <Button

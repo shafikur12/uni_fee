@@ -4,6 +4,28 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, '..');
+
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return;
+  const content = fs.readFileSync(filePath, 'utf-8');
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const separatorIndex = trimmed.indexOf('=');
+    if (separatorIndex === -1) continue;
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const rawValue = trimmed.slice(separatorIndex + 1).trim();
+    const value = rawValue.replace(/^['"]|['"]$/g, '');
+    if (!(key in process.env)) {
+      process.env[key] = value;
+    }
+  }
+}
+
+// Load local environment files when running outside Next.js runtime
+loadEnvFile(path.join(projectRoot, '.env.local'));
+loadEnvFile(path.join(projectRoot, '.env'));
 
 // Get environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,6 +51,7 @@ const migrationFiles = [
   '001_create_schema.sql',
   '002_add_student_profiles.sql',
   '003_fix_rls_policies.sql',
+  '004_fix_student_profiles_rls.sql',
 ];
 
 async function executeMigration(fileName) {
@@ -79,7 +102,11 @@ async function setupDatabase() {
       .select('count(*)', { count: 'exact', head: true });
 
     if (error && error.code !== 'PGRST116') {
-      console.error('❌ Failed to connect to Supabase:', error.message);
+      console.error('❌ Failed to connect to Supabase:');
+      console.error('   code   :', error.code);
+      console.error('   message:', error.message);
+      console.error('   details:', error.details);
+      console.error('   hint   :', error.hint);
       process.exit(1);
     }
 

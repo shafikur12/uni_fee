@@ -19,6 +19,8 @@ import { ReceiptReviewModal } from './receipt-review-modal'
 
 interface Submission {
   id: string
+  student_id: string
+  batch_id: string
   submission_date: string
   amount: number
   bank_name: string
@@ -38,6 +40,7 @@ interface Submission {
     file_url: string
     file_type: string
     file_size: number
+    storage_path?: string | null
   }>
 }
 
@@ -77,8 +80,8 @@ export function VerificationQueueClient({
         .from('fee_submissions')
         .update({
           status: 'Approved',
-          verified_at: new Date().toISOString(),
-          verified_by: userId,
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: userId,
         })
         .eq('id', submissionId)
 
@@ -87,12 +90,22 @@ export function VerificationQueueClient({
       // Generate permission slip (in real app, would generate PDF)
       const submission = submissions.find((s) => s.id === submissionId)
       if (submission) {
+        // Audit log entry (for `/admin/audit-logs`)
+        await supabase.from('audit_logs').insert({
+          actor_id: userId,
+          action_type: 'approve',
+          target_table: 'fee_submissions',
+          target_id: submissionId,
+          batch_id: submission.batch_id,
+          new_value: { status: 'Approved' },
+        })
+
         const { error: slipError } = await supabase
           .from('permission_slips')
           .insert({
-            student_id: submission.students.user_id,
+            student_id: submission.student_id,
             submission_id: submissionId,
-            batch_id: submission.batches.batch_name,
+            batch_id: submission.batch_id,
             verification_code: `SLIP-${Date.now()}`,
             file_url: '#',
             issued_at: new Date().toISOString(),
@@ -127,12 +140,24 @@ export function VerificationQueueClient({
         .update({
           status: 'Rejected',
           rejection_reason: reason,
-          verified_at: new Date().toISOString(),
-          verified_by: userId,
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: userId,
         })
         .eq('id', submissionId)
 
       if (updateError) throw updateError
+
+      const submission = submissions.find((s) => s.id === submissionId)
+      if (submission) {
+        await supabase.from('audit_logs').insert({
+          actor_id: userId,
+          action_type: 'reject',
+          target_table: 'fee_submissions',
+          target_id: submissionId,
+          batch_id: submission.batch_id,
+          new_value: { status: 'Rejected', reason },
+        })
+      }
 
       setSubmissions(submissions.filter((s) => s.id !== submissionId))
       setSuccess('Submission rejected and student notified')

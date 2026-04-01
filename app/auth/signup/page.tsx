@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -13,12 +13,6 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 
-interface Batch {
-  id: string
-  batch_name: string
-  batch_code: string
-}
-
 export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -26,36 +20,11 @@ export default function SignUpPage() {
   const [fullName, setFullName] = useState('')
   const [studentId, setStudentId] = useState('')
   const [batchCode, setBatchCode] = useState('')
-  const [batches, setBatches] = useState<Batch[]>([])
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-
-  useEffect(() => {
-    fetchActiveBatches()
-  }, [])
-
-  const fetchActiveBatches = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('batches')
-        .select('id, batch_name, batch_code')
-        .eq('status', 'Active')
-        .order('batch_name', { ascending: true })
-
-      if (error) throw error
-      setBatches(data || [])
-    } catch (err) {
-      console.error('Error fetching batches:', err)
-      setError('Failed to load batches. Please refresh the page.')
-    }
-  }
-
-  const findBatchByCode = (code: string) => {
-    return batches.find((b) => b.batch_code === code)
-  }
 
   const validateForm = () => {
     if (!email || !password || !confirmPassword || !fullName || !studentId || !batchCode) {
@@ -64,11 +33,6 @@ export default function SignUpPage() {
     }
     if (!/^\d+$/.test(studentId)) {
       setError('Student ID must contain only numbers')
-      return false
-    }
-    const selectedBatch = findBatchByCode(batchCode)
-    if (!selectedBatch) {
-      setError('Invalid batch code')
       return false
     }
     if (password !== confirmPassword) {
@@ -91,55 +55,43 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
-      const selectedBatch = findBatchByCode(batchCode)
-      if (!selectedBatch) {
-        setError('Invalid batch code')
-        setLoading(false)
-        return
-      }
-
-      // Sign up with Supabase Auth without email verification
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            role: 'Student',
-          },
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+      const response = await fetch('/api/public/student-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+          studentId,
+          batchCode,
+        }),
       })
 
-      if (error) {
-        setError(error.message)
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || 'Unable to create account')
         setLoading(false)
         return
       }
 
-      if (data.user) {
-        // Create student profile with batch and student ID
-        const { error: profileError } = await supabase
-          .from('student_profiles')
-          .insert({
-            id: data.user.id,
-            full_name: fullName,
-            student_id: studentId,
-            batch_id: selectedBatch.id,
-          })
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError)
-          setError('Account created but profile setup failed. Please contact support.')
-          setLoading(false)
-          return
-        }
-
-        setSuccess(true)
-        setTimeout(() => {
-          router.push('/student/dashboard')
-        }, 2000)
+      if (signInError) {
+        setError('Account created. Please sign in.')
+        setLoading(false)
+        return
       }
+
+      setSuccess(true)
+      setTimeout(() => {
+        router.push('/student/dashboard')
+      }, 2000)
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please try again.')
       console.error(err)
@@ -232,7 +184,9 @@ export default function SignUpPage() {
               <Input
                 type="text"
                 value={batchCode}
-                onChange={(e) => setBatchCode(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setBatchCode(e.target.value.toUpperCase())
+                }}
                 placeholder="e.g., BATCH-2024-01"
                 disabled={loading}
                 required

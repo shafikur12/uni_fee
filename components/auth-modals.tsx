@@ -270,66 +270,50 @@ export function SignupModal({
     setLoading(true)
 
     try {
-      // Find batch by code
-      const { data: batches } = await supabase
-        .from('batches')
-        .select('id')
-        .eq('batch_code', batchCode.toUpperCase())
-        .eq('status', 'Active')
-        .single()
-
-      if (!batches) {
-        setError('Invalid batch code')
-        setLoading(false)
-        return
-      }
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            role: 'Student',
-          },
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+      const response = await fetch('/api/public/student-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+          studentId,
+          batchCode,
+        }),
       })
 
-      if (error) {
-        setError(error.message)
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || 'Unable to create account')
         setLoading(false)
         return
       }
 
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('student_profiles')
-          .insert({
-            id: data.user.id,
-            full_name: fullName,
-            student_id: studentId,
-            batch_id: batches.id,
-          })
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-        if (profileError) {
-          setError('Profile creation failed')
-          setLoading(false)
-          return
-        }
-
-        setSuccess(true)
-        setTimeout(() => {
-          setEmail('')
-          setPassword('')
-          setConfirmPassword('')
-          setFullName('')
-          setStudentId('')
-          setBatchCode('')
-          setSuccess(false)
-          onClose()
-        }, 2000)
+      if (signInError) {
+        setError('Account created. Please sign in.')
+        setLoading(false)
+        return
       }
+
+      setSuccess(true)
+      setTimeout(() => {
+        setEmail('')
+        setPassword('')
+        setConfirmPassword('')
+        setFullName('')
+        setStudentId('')
+        setBatchCode('')
+        setSuccess(false)
+        onClose()
+      }, 2000)
     } catch (err: any) {
       setError(err.message || 'An error occurred')
       setLoading(false)

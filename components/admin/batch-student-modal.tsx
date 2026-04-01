@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,10 +21,39 @@ export function BatchStudentModal({ batch, onClose }: BatchStudentModalProps) {
   const [inputMode, setInputMode] = useState<'single' | 'csv'>('single')
   const [studentEmail, setStudentEmail] = useState('')
   const [csvText, setCsvText] = useState('')
+  const [csvFile, setCsvFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [studentsInBatch, setStudentsInBatch] = useState<
+    Array<{ id: string; registration_number: string; current_semester: number | null; name: string | null }>
+  >([])
+  const [studentsLoading, setStudentsLoading] = useState(false)
   const supabase = createClient()
+
+  const fetchStudentsInBatch = async () => {
+    setStudentsLoading(true)
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('students')
+        .select('id, registration_number, current_semester, name')
+        .eq('batch_id', batch.id)
+        .order('registration_number', { ascending: true })
+
+      if (!fetchError) {
+        setStudentsInBatch(data || [])
+      }
+    } catch {
+      // ignore; UI will just show empty list
+    } finally {
+      setStudentsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchStudentsInBatch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batch.id])
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,49 +68,31 @@ export function BatchStudentModal({ batch, onClose }: BatchStudentModalProps) {
     setLoading(true)
 
     try {
-      // Find user by email
-      const { data: userData } = await supabase.auth.admin?.listUsers?.()
+      const response = await fetch('/api/admin/batches/assign-students', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          batchId: batch.id,
+          emails: [studentEmail],
+        }),
+      })
 
-      const user = userData?.users?.find((u) => u.email === studentEmail)
+      const result = await response.json()
 
-      if (!user) {
-        setError('User not found with this email')
-        setLoading(false)
-        return
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to add student')
       }
 
-      // Check if student record exists
-      const { data: existingStudent } = await supabase
-        .from('student_profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single()
-
-      if (existingStudent) {
-        // Update batch assignment
-        const { error: updateError } = await supabase
-          .from('student_profiles')
-          .update({ batch_id: batch.id })
-          .eq('id', user.id)
-
-        if (updateError) throw updateError
+      if (result.added === 0) {
+        setError('No matching student accounts found for this email')
       } else {
-        // Create new student with batch
-        const { error: createError } = await supabase
-          .from('student_profiles')
-          .insert({
-            id: user.id,
-            batch_id: batch.id,
-            full_name: user.email?.split('@')[0] || 'Student',
-            student_id: `STU-${Date.now()}`,
-          })
-
-        if (createError) throw createError
+        setSuccess(`Student assigned to ${batch.batch_name}`)
+        setStudentEmail('')
+        await fetchStudentsInBatch()
+        setTimeout(() => setSuccess(''), 3000)
       }
-
-      setSuccess(`Student assigned to ${batch.batch_name}`)
-      setStudentEmail('')
-      setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
       console.error('Error:', err)
       setError('Failed to add student')
@@ -95,62 +106,46 @@ export function BatchStudentModal({ batch, onClose }: BatchStudentModalProps) {
     setError('')
     setSuccess('')
 
-    if (!csvText) {
-      setError('Please paste CSV data')
+    if (!csvFile) {
+      setError('Please upload a CSV file')
       return
     }
 
     setLoading(true)
 
     try {
-      const lines = csvText.split('\n').filter((line) => line.trim())
-      let added = 0
-      let failed = 0
+      const text = await csvFile.text()
+      const lines = text.split('\n').filter((line) => line.trim())
+      const emails = lines
+        .map((line) => line.split(',')[0]?.trim())
+        .filter((email) => !!email)
 
-      for (const line of lines) {
-        const [email] = line.split(',').map((col) => col.trim())
-
-        if (!email) continue
-
-        try {
-          const { data: userData } = await supabase.auth.admin?.listUsers?.()
-          const user = userData?.users?.find((u) => u.email === email)
-
-          if (!user) {
-            failed++
-            continue
-          }
-
-          const { data: existingStudent } = await supabase
-            .from('student_profiles')
-            .select('id')
-            .eq('id', user.id)
-            .single()
-
-          if (existingStudent) {
-            await supabase
-              .from('student_profiles')
-              .update({ batch_id: batch.id })
-              .eq('id', user.id)
-          } else {
-            await supabase
-              .from('student_profiles')
-              .insert({
-                id: user.id,
-                batch_id: batch.id,
-                full_name: email.split('@')[0],
-                student_id: `STU-${Date.now()}`,
-              })
-          }
-
-          added++
-        } catch (err) {
-          failed++
-        }
+      if (emails.length === 0) {
+        setError('No valid email addresses found in CSV')
+        setLoading(false)
+        return
       }
 
-      setSuccess(`Added ${added} student(s). Failed: ${failed}`)
-      setCsvText('')
+      const response = await fetch('/api/admin/batches/assign-students', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          batchId: batch.id,
+          emails,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to process CSV')
+      }
+
+      setSuccess(`Added ${result.added} student(s). Failed: ${result.failed}`)
+      setCsvFile(null)
+      await fetchStudentsInBatch()
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
       console.error('CSV error:', err)
@@ -188,6 +183,34 @@ export function BatchStudentModal({ batch, onClose }: BatchStudentModalProps) {
               <p className="text-sm text-green-700">{success}</p>
             </div>
           )}
+
+          {/* Students in this batch */}
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
+              Students in this batch ({studentsInBatch.length})
+            </h3>
+            {studentsLoading ? (
+              <div className="text-sm text-gray-600">Loading...</div>
+            ) : studentsInBatch.length === 0 ? (
+              <div className="text-sm text-gray-600">No students assigned yet.</div>
+            ) : (
+              <div className="space-y-2">
+                {studentsInBatch.slice(0, 8).map((s) => (
+                  <div key={s.id} className="flex items-center justify-between text-sm">
+                    <div className="text-gray-900 font-medium truncate max-w-[140px]">
+                      {s.registration_number}
+                    </div>
+                    <div className="text-gray-600">
+                      Sem {s.current_semester ?? 1}
+                    </div>
+                  </div>
+                ))}
+                {studentsInBatch.length > 8 && (
+                  <div className="text-xs text-gray-500">Showing first 8 students.</div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Mode Selector */}
           <div className="flex gap-2 mb-4">
@@ -256,18 +279,17 @@ export function BatchStudentModal({ batch, onClose }: BatchStudentModalProps) {
             <form onSubmit={handleAddFromCSV} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CSV Data
+                  Upload CSV File
                 </label>
-                <textarea
-                  value={csvText}
-                  onChange={(e) => setCsvText(e.target.value)}
-                  placeholder="email1@example.com&#10;email2@example.com"
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
                   disabled={loading}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  rows={6}
+                  className="w-full text-sm text-gray-700"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  One email per line
+                  CSV should contain one email per line as the first column.
                 </p>
               </div>
 

@@ -10,6 +10,7 @@ import {
   FileText,
   Upload,
   TrendingUp,
+  Download,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'

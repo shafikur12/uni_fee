@@ -8,10 +8,11 @@ import { useState } from 'react'
 interface AuditLog {
   id: string
   action_type: string
-  entity_type: string
+  target_table?: string
   timestamp: string
   actor_id: string
-  changes_made?: any
+  new_value?: any
+  old_value?: any
 }
 
 interface AuditLogsClientProps {
@@ -25,7 +26,7 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
     const query = searchTerm.toLowerCase()
     return (
       log.action_type.toLowerCase().includes(query) ||
-      log.entity_type.toLowerCase().includes(query)
+      (log.target_table || '').toLowerCase().includes(query)
     )
   })
 
@@ -98,12 +99,14 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {log.entity_type}
+                      {log.target_table || 'N/A'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
-                      {log.changes_made && typeof log.changes_made === 'object'
-                        ? JSON.stringify(log.changes_made)
-                        : 'N/A'}
+                      {log.new_value && typeof log.new_value === 'object'
+                        ? JSON.stringify(log.new_value)
+                        : log.old_value && typeof log.old_value === 'object'
+                          ? JSON.stringify(log.old_value)
+                          : 'N/A'}
                     </td>
                   </tr>
                 ))

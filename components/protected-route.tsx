@@ -1,11 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 
-export function ProtectedRoute({ children, requiredRole?: string }: { children: React.ReactNode; requiredRole?: string }) {
+export function ProtectedRoute({
+  children,
+  requiredRole,
+}: {
+  children: ReactNode
+  requiredRole?: string
+}) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [authorized, setAuthorized] = useState(false)
@@ -14,9 +20,9 @@ export function ProtectedRoute({ children, requiredRole?: string }: { children: 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
 
         if (!session) {
           router.push('/auth/login')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,11 +11,10 @@ export function ErrorBoundary({
 }: {
   children: React.ReactNode
 }) {
-  const [hasError, setHasError] = useEffect(() => {
-    const errorHandler = () => {
-      setHasError(true)
-    }
+  const [hasError, setHasError] = useState(false)
 
+  useEffect(() => {
+    const errorHandler = () => setHasError(true)
     window.addEventListener('error', errorHandler)
     return () => window.removeEventListener('error', errorHandler)
   }, [])

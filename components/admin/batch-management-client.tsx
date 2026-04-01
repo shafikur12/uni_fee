@@ -47,6 +47,10 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showStudentModal, setShowStudentModal] = useState(false)
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null)
+  const [editingBatch, setEditingBatch] = useState<Batch | null>(null)
+  const [editBatchName, setEditBatchName] = useState('')
+  const [editBatchCode, setEditBatchCode] = useState('')
+  const [editAcademicYear, setEditAcademicYear] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -70,6 +74,80 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
     } catch (err) {
       console.error('Archive error:', err)
       setError('Failed to archive batch')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const openEditModal = (batch: Batch) => {
+    setEditingBatch(batch)
+    setEditBatchName(batch.batch_name)
+    setEditBatchCode(batch.batch_code)
+    setEditAcademicYear(batch.academic_year)
+  }
+
+  const handleUpdateBatch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingBatch) return
+
+    setLoading(true)
+    setError('')
+
+    try {
+      const { error: updateError } = await supabase
+        .from('batches')
+        .update({
+          batch_name: editBatchName,
+          batch_code: editBatchCode.toUpperCase(),
+          academic_year: editAcademicYear,
+        })
+        .eq('id', editingBatch.id)
+
+      if (updateError) throw updateError
+
+      setBatches(
+        batches.map((b) =>
+          b.id === editingBatch.id
+            ? {
+                ...b,
+                batch_name: editBatchName,
+                batch_code: editBatchCode.toUpperCase(),
+                academic_year: editAcademicYear,
+              }
+            : b,
+        ),
+      )
+
+      setSuccess('Batch updated successfully')
+      setEditingBatch(null)
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err) {
+      console.error('Update error:', err)
+      setError('Failed to update batch')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteBatch = async (batchId: string) => {
+    if (!window.confirm('Are you sure you want to delete this batch? This action cannot be undone.')) {
+      return
+    }
+
+    setLoading(true)
+    setError('')
+
+    try {
+      const { error: deleteError } = await supabase.from('batches').delete().eq('id', batchId)
+
+      if (deleteError) throw deleteError
+
+      setBatches(batches.filter((b) => b.id !== batchId))
+      setSuccess('Batch deleted successfully')
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err) {
+      console.error('Delete error:', err)
+      setError('Failed to delete batch')
     } finally {
       setLoading(false)
     }
@@ -198,6 +276,13 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
                       >
                         <Users className="w-4 h-4" />
                       </Button>
+                      <Button
+                        onClick={() => openEditModal(batch)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
                       {batch.status === 'Active' && (
                         <Button
                           onClick={() => handleArchiveBatch(batch.id)}
@@ -212,6 +297,13 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
                           )}
                         </Button>
                       )}
+                      <Button
+                        onClick={() => handleDeleteBatch(batch.id)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <AlertCircle className="w-4 h-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))
@@ -238,6 +330,76 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
             setSelectedBatch(null)
           }}
         />
+      )}
+
+      {editingBatch && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Update Batch</h2>
+              <form onSubmit={handleUpdateBatch} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Batch Name
+                  </label>
+                  <Input
+                    value={editBatchName}
+                    onChange={(e) => setEditBatchName(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Batch Code
+                  </label>
+                  <Input
+                    value={editBatchCode}
+                    onChange={(e) => setEditBatchCode(e.target.value.toUpperCase())}
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Academic Year
+                  </label>
+                  <Input
+                    value={editAcademicYear}
+                    onChange={(e) => setEditAcademicYear(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="button"
+                    onClick={() => setEditingBatch(null)}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={loading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   )

@@ -78,21 +78,24 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
     setLoading(true)
 
     try {
-      // Upload file to Supabase storage
-      const fileExt = selectedFile.name.split('.').pop()
-      const fileName = `${userId}-${Date.now()}.${fileExt}`
-      const filePath = `receipts/${fileName}`
+      // Upload file to Vercel Blob via API route
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      formData.append('userId', userId)
 
-      const { error: uploadError } = await supabase.storage
-        .from('receipts')
-        .upload(filePath, selectedFile)
+      const uploadResponse = await fetch('/api/student/upload-receipt', {
+        method: 'POST',
+        body: formData,
+      })
 
-      if (uploadError) throw uploadError
+      const uploadResult = await uploadResponse.json()
 
-      // Get public URL
-      const { data: publicUrl } = supabase.storage
-        .from('receipts')
-        .getPublicUrl(filePath)
+      if (!uploadResponse.ok) {
+        throw new Error(uploadResult.error || 'Failed to upload file')
+      }
+
+      const fileUrl: string = uploadResult.url
+      const storagePath: string = uploadResult.path
 
       // Create fee submission
       const { data: submission, error: submissionError } = await supabase
@@ -117,14 +120,32 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
         .from('uploaded_receipts')
         .insert({
           submission_id: submission.id,
-          file_url: publicUrl.publicUrl,
+          file_name: selectedFile.name,
+          file_url: fileUrl,
           file_type: selectedFile.type,
           file_size: selectedFile.size,
-          storage_path: filePath,
+          storage_path: storagePath,
           uploaded_at: new Date().toISOString(),
         })
 
       if (receiptError) throw receiptError
+
+      // Write an audit log entry so admins can see activity in `/admin/audit-logs`.
+      // (audit_logs has RLS policy allowing authenticated inserts.)
+      await supabase.from('audit_logs').insert({
+        actor_id: userId,
+        action_type: 'create',
+        target_table: 'fee_submissions',
+        target_id: submission.id,
+        batch_id: student.batch_id,
+        new_value: {
+          status: 'Pending',
+          amount: parseFloat(amount),
+          bank_name: bankName,
+          transaction_id: transactionId,
+          payment_reference: paymentReference,
+        },
+      })
 
       setSuccess(true)
       setSelectedFile(null)
@@ -136,6 +157,7 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
       setTimeout(() => {
         setSuccess(false)
       }, 5000)
+      setLoading(false)
     } catch (err) {
       console.error('Upload error:', err)
       setError('Failed to upload receipt. Please try again.')

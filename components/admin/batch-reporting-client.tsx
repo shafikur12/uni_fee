@@ -61,7 +61,7 @@ export function BatchReportingClient({ batches }: BatchReportingClientProps) {
   }
 
   const comparisonData = useMemo(() => {
-    return selectedBatches.map((batchId) => {
+    const rows = selectedBatches.map((batchId) => {
       const batch = batches.find((b) => b.id === batchId)
       if (!batch) return null
       const metrics = calculateMetrics(batch)
@@ -69,7 +69,8 @@ export function BatchReportingClient({ batches }: BatchReportingClientProps) {
         name: batch.batch_name,
         ...metrics,
       }
-    }).filter(Boolean)
+    })
+    return rows.filter((row): row is NonNullable<(typeof rows)[number]> => row !== null)
   }, [selectedBatches, batches])
 
   const timelineData = useMemo(() => {

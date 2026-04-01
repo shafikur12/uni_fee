@@ -26,6 +26,7 @@ interface Submission {
     file_url: string
     file_type: string
     file_size: number
+    storage_path?: string | null
   }>
 }
 
@@ -48,6 +49,10 @@ export function ReceiptReviewModal({
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [zoom, setZoom] = useState(1)
   const receipt = submission.uploaded_receipts?.[0]
+
+  const receiptSrc = receipt?.storage_path
+    ? `/api/blob?path=${encodeURIComponent(receipt.storage_path)}`
+    : receipt?.file_url ?? ''
 
   const handleRejectSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -118,7 +123,7 @@ export function ReceiptReviewModal({
                   </div>
                 ) : (
                   <img
-                    src={receipt?.file_url}
+                    src={receiptSrc}
                     alt="Receipt"
                     style={{ transform: `scale(${zoom})` }}
                     className="max-w-full max-h-full object-contain"
