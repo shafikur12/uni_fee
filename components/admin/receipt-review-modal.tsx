@@ -50,9 +50,12 @@ export function ReceiptReviewModal({
   const [zoom, setZoom] = useState(1)
   const receipt = submission.uploaded_receipts?.[0]
 
-  const receiptSrc = receipt?.storage_path
-    ? `/api/blob?path=${encodeURIComponent(receipt.storage_path)}`
-    : receipt?.file_url ?? ''
+  const directUrl = receipt?.file_url?.trim() || null
+  const receiptSrc = directUrl
+    ? directUrl
+    : receipt?.storage_path
+      ? `/api/blob?path=${encodeURIComponent(receipt.storage_path)}`
+      : null
 
   const handleRejectSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -112,22 +115,33 @@ export function ReceiptReviewModal({
                   <div className="text-center py-12">
                     <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-2" />
                     <p className="text-gray-600">PDF Preview not available</p>
-                    <a
-                      href={receipt.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-700 mt-2 inline-block"
-                    >
-                      Open PDF
-                    </a>
+                    {receiptSrc ? (
+                      <a
+                        href={receiptSrc}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 mt-2 inline-block"
+                      >
+                        Open PDF
+                      </a>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-2">
+                        No file available for this receipt.
+                      </p>
+                    )}
                   </div>
-                ) : (
+                ) : receiptSrc ? (
                   <img
                     src={receiptSrc}
                     alt="Receipt"
                     style={{ transform: `scale(${zoom})` }}
                     className="max-w-full max-h-full object-contain"
                   />
+                ) : (
+                  <div className="text-center py-12">
+                    <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600">No receipt file available</p>
+                  </div>
                 )}
               </div>
 

@@ -21,9 +21,9 @@ import {
   Edit2,
   Archive,
   Users,
+  Trash2,
 } from 'lucide-react'
 import { BatchCreateModal } from './batch-create-modal'
-import { BatchStudentModal } from './batch-student-modal'
 
 interface Batch {
   id: string
@@ -45,19 +45,19 @@ interface BatchManagementClientProps {
 export function BatchManagementClient({ batches: initialBatches, userId }: BatchManagementClientProps) {
   const [batches, setBatches] = useState<Batch[]>(initialBatches)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showStudentModal, setShowStudentModal] = useState(false)
-  const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null)
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null)
   const [editBatchName, setEditBatchName] = useState('')
   const [editBatchCode, setEditBatchCode] = useState('')
   const [editAcademicYear, setEditAcademicYear] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingBatchId, setLoadingBatchId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const supabase = createClient()
 
   const handleArchiveBatch = async (batchId: string) => {
     setLoading(true)
+    setLoadingBatchId(batchId)
     setError('')
 
     try {
@@ -76,6 +76,32 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
       setError('Failed to archive batch')
     } finally {
       setLoading(false)
+      setLoadingBatchId(null)
+    }
+  }
+
+  const handleActivateBatch = async (batchId: string) => {
+    setLoading(true)
+    setLoadingBatchId(batchId)
+    setError('')
+
+    try {
+      const { error: updateError } = await supabase
+        .from('batches')
+        .update({ status: 'Active' })
+        .eq('id', batchId)
+
+      if (updateError) throw updateError
+
+      setBatches(batches.map((b) => (b.id === batchId ? { ...b, status: 'Active' } : b)))
+      setSuccess('Batch activated successfully')
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err) {
+      console.error('Activate error:', err)
+      setError('Failed to activate batch')
+    } finally {
+      setLoading(false)
+      setLoadingBatchId(null)
     }
   }
 
@@ -138,9 +164,16 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
     setError('')
 
     try {
-      const { error: deleteError } = await supabase.from('batches').delete().eq('id', batchId)
+      const response = await fetch('/api/admin/batches/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: batchId }),
+      })
 
-      if (deleteError) throw deleteError
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result?.error || 'Failed to delete batch')
+      }
 
       setBatches(batches.filter((b) => b.id !== batchId))
       setSuccess('Batch deleted successfully')
@@ -268,32 +301,49 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
                     <td className="px-6 py-4 whitespace-nowrap space-x-2">
                       <Button
                         onClick={() => {
-                          setSelectedBatch(batch)
-                          setShowStudentModal(true)
+                          window.location.href = `/admin/batches/${batch.id}`
                         }}
                         variant="outline"
                         size="sm"
+                        title="View students"
                       >
-                        <Users className="w-4 h-4" />
+                        <Users className="w-4 h-4 mr-2" />
+                        Students
                       </Button>
                       <Button
                         onClick={() => openEditModal(batch)}
                         variant="outline"
                         size="sm"
+                        title="Edit batch"
                       >
                         <Edit2 className="w-4 h-4" />
                       </Button>
-                      {batch.status === 'Active' && (
+                      {batch.status === 'Active' ? (
                         <Button
                           onClick={() => handleArchiveBatch(batch.id)}
                           variant="outline"
                           size="sm"
-                          disabled={loading}
+                          disabled={loadingBatchId === batch.id}
+                          title="Archive batch"
                         >
-                          {loading ? (
+                          {loadingBatchId === batch.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <Archive className="w-4 h-4" />
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleActivateBatch(batch.id)}
+                          variant="outline"
+                          size="sm"
+                          disabled={loadingBatchId === batch.id}
+                          title="Activate batch"
+                        >
+                          {loadingBatchId === batch.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4" />
                           )}
                         </Button>
                       )}
@@ -301,8 +351,9 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
                         onClick={() => handleDeleteBatch(batch.id)}
                         variant="outline"
                         size="sm"
+                        title="Delete batch"
                       >
-                        <AlertCircle className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </td>
                   </tr>
@@ -322,15 +373,6 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
         />
       )}
 
-      {showStudentModal && selectedBatch && (
-        <BatchStudentModal
-          batch={selectedBatch}
-          onClose={() => {
-            setShowStudentModal(false)
-            setSelectedBatch(null)
-          }}
-        />
-      )}
 
       {editingBatch && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

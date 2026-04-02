@@ -26,7 +26,13 @@ export function BatchStudentModal({ batch, onClose }: BatchStudentModalProps) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [studentsInBatch, setStudentsInBatch] = useState<
-    Array<{ id: string; registration_number: string; current_semester: number | null; name: string | null }>
+    Array<{
+      id: string
+      registration_number: string
+      current_semester: number | null
+      name: string | null
+      status: string | null
+    }>
   >([])
   const [studentsLoading, setStudentsLoading] = useState(false)
   const supabase = createClient()
@@ -36,7 +42,7 @@ export function BatchStudentModal({ batch, onClose }: BatchStudentModalProps) {
     try {
       const { data, error: fetchError } = await supabase
         .from('students')
-        .select('id, registration_number, current_semester, name')
+        .select('id, registration_number, current_semester, name, status')
         .eq('batch_id', batch.id)
         .order('registration_number', { ascending: true })
 
@@ -194,20 +200,35 @@ export function BatchStudentModal({ batch, onClose }: BatchStudentModalProps) {
             ) : studentsInBatch.length === 0 ? (
               <div className="text-sm text-gray-600">No students assigned yet.</div>
             ) : (
-              <div className="space-y-2">
-                {studentsInBatch.slice(0, 8).map((s) => (
-                  <div key={s.id} className="flex items-center justify-between text-sm">
-                    <div className="text-gray-900 font-medium truncate max-w-[140px]">
-                      {s.registration_number}
-                    </div>
-                    <div className="text-gray-600">
-                      Sem {s.current_semester ?? 1}
-                    </div>
-                  </div>
-                ))}
-                {studentsInBatch.length > 8 && (
-                  <div className="text-xs text-gray-500">Showing first 8 students.</div>
-                )}
+              <div className="max-h-64 overflow-auto border border-gray-200 rounded">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-600">
+                    <tr>
+                      <th className="text-left px-3 py-2">Reg. No</th>
+                      <th className="text-left px-3 py-2">Name</th>
+                      <th className="text-left px-3 py-2">Semester</th>
+                      <th className="text-left px-3 py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {studentsInBatch.map((s) => (
+                      <tr key={s.id}>
+                        <td className="px-3 py-2 font-medium text-gray-900">
+                          {s.registration_number}
+                        </td>
+                        <td className="px-3 py-2 text-gray-700">
+                          {s.name || 'Student'}
+                        </td>
+                        <td className="px-3 py-2 text-gray-700">
+                          Sem {s.current_semester ?? 1}
+                        </td>
+                        <td className="px-3 py-2 text-gray-700">
+                          {s.status || 'Active'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

@@ -75,46 +75,16 @@ export function VerificationQueueClient({
     setError('')
 
     try {
-      // Update submission status
-      const { error: updateError } = await supabase
-        .from('fee_submissions')
-        .update({
-          status: 'Approved',
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: userId,
-        })
-        .eq('id', submissionId)
+      const response = await fetch('/api/admin/fee-submissions/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submissionId, actorId: userId }),
+      })
 
-      if (updateError) throw updateError
+      const result = await response.json()
 
-      // Generate permission slip (in real app, would generate PDF)
-      const submission = submissions.find((s) => s.id === submissionId)
-      if (submission) {
-        // Audit log entry (for `/admin/audit-logs`)
-        await supabase.from('audit_logs').insert({
-          actor_id: userId,
-          action_type: 'approve',
-          target_table: 'fee_submissions',
-          target_id: submissionId,
-          batch_id: submission.batch_id,
-          new_value: { status: 'Approved' },
-        })
-
-        const { error: slipError } = await supabase
-          .from('permission_slips')
-          .insert({
-            student_id: submission.student_id,
-            submission_id: submissionId,
-            batch_id: submission.batch_id,
-            verification_code: `SLIP-${Date.now()}`,
-            file_url: '#',
-            issued_at: new Date().toISOString(),
-            issued_by: userId,
-          })
-
-        if (slipError && slipError.code !== 'PGRST116') {
-          console.error('Slip error:', slipError)
-        }
+      if (!response.ok) {
+        throw new Error(result?.error || 'Failed to approve submission')
       }
 
       // Remove from list
