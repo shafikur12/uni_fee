@@ -26,6 +26,9 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
   const [transactionId, setTransactionId] = useState('')
   const [paymentReference, setPaymentReference] = useState('')
   const [amount, setAmount] = useState(student.batches?.fee_amount?.toString() || '')
+  const [semester, setSemester] = useState(
+    student.current_semester ? String(student.current_semester) : '',
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -70,7 +73,7 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
       return
     }
 
-    if (!bankName || !transactionId || !paymentReference || !amount) {
+    if (!bankName || !transactionId || !paymentReference || !amount || !semester) {
       setError('Please fill in all fields')
       return
     }
@@ -115,6 +118,14 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
 
       if (submissionError) throw submissionError
 
+      const parsedSemester = parseInt(semester, 10)
+      if (Number.isFinite(parsedSemester)) {
+        await supabase
+          .from('students')
+          .update({ current_semester: parsedSemester })
+          .eq('id', student.id)
+      }
+
       // Create uploaded receipt record
       const { error: receiptError } = await supabase
         .from('uploaded_receipts')
@@ -130,6 +141,10 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
 
       if (receiptError) throw receiptError
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
       // Write an audit log entry so admins can see activity in `/admin/audit-logs`.
       // (audit_logs has RLS policy allowing authenticated inserts.)
       await supabase.from('audit_logs').insert({
@@ -144,6 +159,9 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
           bank_name: bankName,
           transaction_id: transactionId,
           payment_reference: paymentReference,
+          submission_id: submission.id,
+          student_id: student.id,
+          student_email: user?.email || null,
         },
       })
 
@@ -153,6 +171,7 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
       setBankName('')
       setTransactionId('')
       setPaymentReference('')
+      setSemester('')
 
       setTimeout(() => {
         setSuccess(false)
@@ -170,7 +189,7 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Upload Payment Receipt</h1>
         <p className="text-gray-600 mt-2">
-          Batch: {student.batches?.batch_name} | Fee: Rs. {student.batches?.fee_amount}
+          Batch: {student.batches?.batch_name} | Fee: Tk.. {student.batches?.fee_amount}
         </p>
       </div>
 
@@ -268,7 +287,7 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount (Rs.) *
+                Amount (Tk.) *
               </label>
               <Input
                 type="number"
@@ -278,6 +297,20 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
                 disabled={loading}
                 min="0"
                 step="0.01"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Semester *
+              </label>
+              <Input
+                type="number"
+                value={semester}
+                onChange={(e) => setSemester(e.target.value)}
+                placeholder="e.g., 3"
+                disabled={loading}
+                min="1"
               />
             </div>
           </div>

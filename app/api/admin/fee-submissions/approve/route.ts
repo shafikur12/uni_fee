@@ -140,13 +140,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let studentEmail: string | null = null
+    if (studentRow?.id) {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(studentRow.id)
+      studentEmail = userData?.user?.email || null
+    }
+
     await supabaseAdmin.from('audit_logs').insert({
       actor_id: actorId,
       action_type: 'approve',
       target_table: 'fee_submissions',
       target_id: submissionId,
       batch_id: submission.batch_id,
-      new_value: { status: 'Approved' },
+      new_value: {
+        status: 'Approved',
+        submission_id: submissionId,
+        student_id: studentRow?.id || submission.student_id,
+        student_email: studentEmail,
+      },
     })
 
     return NextResponse.json({ ok: true })

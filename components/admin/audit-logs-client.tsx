@@ -3,7 +3,8 @@
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useState } from 'react'
+import React, { useState } from 'react'
+import Link from 'next/link'
 
 interface AuditLog {
   id: string
@@ -11,8 +12,16 @@ interface AuditLog {
   target_table?: string
   timestamp: string
   actor_id: string
+  target_id?: string | null
   new_value?: any
   old_value?: any
+  submission_reference?: {
+    id: string
+    student_name: string | null
+    registration_number: string | null
+    student_email?: string | null
+  } | null
+  submission_target_id?: string | null
 }
 
 interface AuditLogsClientProps {
@@ -26,7 +35,10 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
     const query = searchTerm.toLowerCase()
     return (
       log.action_type.toLowerCase().includes(query) ||
-      (log.target_table || '').toLowerCase().includes(query)
+      (log.target_table || '').toLowerCase().includes(query) ||
+      (log.submission_reference?.student_name || '').toLowerCase().includes(query) ||
+      (log.submission_reference?.registration_number || '').toLowerCase().includes(query) ||
+      (log.submission_reference?.student_email || '').toLowerCase().includes(query)
     )
   })
 
@@ -47,6 +59,22 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
     }
   }
 
+  const formatKey = (key: string) =>
+    key
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+
+  const pickDetails = (log: AuditLog) => {
+    const source = log.new_value && typeof log.new_value === 'object' ? log.new_value : log.old_value
+    if (!source || typeof source !== 'object') return []
+    const entries = Object.entries(source as Record<string, any>)
+    return entries.map(([key, value]) => ({
+      key,
+      label: formatKey(key),
+      value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+    }))
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -55,7 +83,7 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
       </div>
 
       <Input
-        placeholder="Search by action or entity type..."
+        placeholder="Search by action, entity, or student..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         className="max-w-md"
@@ -76,40 +104,99 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
                   Entity
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                  Student Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                   Details
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                  View
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-600">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-600">
                     No logs found
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {new Date(log.timestamp).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge className={getActionBadgeColor(log.action_type)}>
-                        {log.action_type}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {log.target_table || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
-                      {log.new_value && typeof log.new_value === 'object'
-                        ? JSON.stringify(log.new_value)
-                        : log.old_value && typeof log.old_value === 'object'
-                          ? JSON.stringify(log.old_value)
+                filteredLogs.map((log) => {
+                  const details = pickDetails(log)
+                  const statusItem = details.find((item) => item.key === 'status')
+                  const isRejected =
+                    statusItem && String(statusItem.value).toLowerCase() === 'rejected'
+                  const reasonItem = details.find((item) => item.key === 'reason')
+                  const isPendingStatus =
+                    statusItem && String(statusItem.value).toLowerCase() === 'pending'
+                  const resolvedSubmissionId = log.submission_target_id || log.target_id || null
+                  const isSubmission = !!resolvedSubmissionId
+                  const fallbackEmail =
+                    (log.new_value && log.new_value.student_email) ||
+                    (log.old_value && log.old_value.student_email) ||
+                    null
+                  return (
+                    <tr key={log.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge className={getActionBadgeColor(log.action_type)}>
+                          {log.action_type}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {log.target_table || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {isSubmission
+                          ? log.submission_reference?.student_email || fallbackEmail || 'N/A'
                           : 'N/A'}
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {isRejected ? (
+                          <>
+                            {reasonItem && (
+                              <div className="truncate">
+                                <span className="text-gray-500">Reason:</span>{' '}
+                                <span className="text-gray-900">{reasonItem.value}</span>
+                              </div>
+                            )}
+                            {statusItem && (
+                              <div className="truncate">
+                                <span className="text-gray-500">Status:</span>{' '}
+                                <span className="text-gray-900">{statusItem.value}</span>
+                              </div>
+                            )}
+                            {!reasonItem && !statusItem && (
+                              <span className="text-gray-500">N/A</span>
+                            )}
+                          </>
+                        ) : statusItem ? (
+                          <div className="truncate">
+                            <span className="text-gray-500">Status:</span>{' '}
+                            <span className="text-gray-900">{statusItem.value}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">N/A</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {isSubmission ? (
+                          <Link
+                            className="text-indigo-600 hover:text-indigo-700"
+                            href={`/admin/submissions/${resolvedSubmissionId}`}
+                          >
+                            View
+                          </Link>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>

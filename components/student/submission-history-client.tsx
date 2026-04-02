@@ -82,7 +82,7 @@ export function SubmissionHistoryClient({ submissions }: { submissions: Submissi
                       {submission.batches?.batch_name}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Rs. {submission.amount} •{' '}
+                      Tk.. {submission.amount} •{' '}
                       {new Date(submission.submission_date).toLocaleDateString()}
                     </p>
                   </div>
@@ -103,7 +103,7 @@ export function SubmissionHistoryClient({ submissions }: { submissions: Submissi
                     </div>
                     <div>
                       <p className="text-gray-600">Amount</p>
-                      <p className="font-medium text-gray-900">Rs. {submission.amount}</p>
+                      <p className="font-medium text-gray-900">Tk.. {submission.amount}</p>
                     </div>
                     <div>
                       <p className="text-gray-600">Status</p>

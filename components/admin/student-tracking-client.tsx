@@ -4,13 +4,14 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Download } from 'lucide-react'
+import { Download, Eye } from 'lucide-react'
+import Link from 'next/link'
 import { useState } from 'react'
 
 interface Student {
   id: string
   registration_number: string
-  semester: number
+  name: string | null
   batches: {
     batch_name: string
   }
@@ -26,22 +27,24 @@ interface StudentTrackingClientProps {
 
 export function StudentTrackingClient({ students: initialStudents }: StudentTrackingClientProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [loadingStudentId, setLoadingStudentId] = useState<string | null>(null)
 
   const filteredStudents = initialStudents.filter((student) => {
     const query = searchTerm.toLowerCase()
     return (
       student.registration_number.toLowerCase().includes(query) ||
-      student.batches?.batch_name?.toLowerCase().includes(query)
+      student.batches?.batch_name?.toLowerCase().includes(query) ||
+      (student.name || '').toLowerCase().includes(query)
     )
   })
 
   const handleExportCSV = () => {
     const csv = [
-      ['Registration Number', 'Batch', 'Semester', 'Total Submissions', 'Approved', 'Exam Eligible'],
+      ['Registration Number', 'Student Name', 'Batch', 'Total Submissions', 'Approved', 'Exam Eligible'],
       ...filteredStudents.map((s) => [
         s.registration_number,
+        s.name || 'Student',
         s.batches?.batch_name || 'N/A',
-        s.semester,
         s.fee_submissions?.length || 0,
         s.fee_submissions?.filter((f) => f.status === 'Approved').length || 0,
         s.fee_submissions?.some((f) => f.status === 'Approved') ? 'Yes' : 'No',
@@ -58,6 +61,10 @@ export function StudentTrackingClient({ students: initialStudents }: StudentTrac
     a.click()
   }
 
+  const openSubmissions = (student: Student) => {
+    setLoadingStudentId(student.id)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -72,7 +79,7 @@ export function StudentTrackingClient({ students: initialStudents }: StudentTrac
       </div>
 
       <Input
-        placeholder="Search by registration number or batch..."
+        placeholder="Search by registration number, name, or batch..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         className="max-w-md"
@@ -87,10 +94,10 @@ export function StudentTrackingClient({ students: initialStudents }: StudentTrac
                   Student ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                  Batch
+                  Student Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                  Semester
+                  Batch
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                   Submissions
@@ -101,12 +108,15 @@ export function StudentTrackingClient({ students: initialStudents }: StudentTrac
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                   Exam Eligible
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-600">
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-600">
                     No students found
                   </td>
                 </tr>
@@ -121,10 +131,10 @@ export function StudentTrackingClient({ students: initialStudents }: StudentTrac
                         {student.registration_number}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                        {student.batches?.batch_name || 'N/A'}
+                        {student.name || 'Student'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                        {student.semester}
+                        {student.batches?.batch_name || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
                         {student.fee_submissions?.length || 0} submissions
@@ -149,6 +159,20 @@ export function StudentTrackingClient({ students: initialStudents }: StudentTrac
                           {isEligible ? 'Yes' : 'No'}
                         </Badge>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openSubmissions(student)}
+                          disabled={loadingStudentId === student.id}
+                        >
+                          <Link href={`/admin/student-tracking/${student.id}`}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Submissions
+                          </Link>
+                        </Button>
+                      </td>
                     </tr>
                   )
                 })
@@ -157,6 +181,7 @@ export function StudentTrackingClient({ students: initialStudents }: StudentTrac
           </table>
         </div>
       </Card>
+
     </div>
   )
 }

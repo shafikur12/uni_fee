@@ -280,7 +280,7 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
                       </p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="font-medium text-gray-900">Rs. {batch.fee_amount}</p>
+                      <p className="font-medium text-gray-900">Tk.. {batch.fee_amount}</p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="text-sm text-gray-600">

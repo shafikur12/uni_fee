@@ -32,7 +32,7 @@ export default async function StudentTrackingPage() {
   // We map it into the shape expected by `StudentTrackingClient`.
   const { data: profiles } = await supabase
     .from('student_profiles')
-    .select('id, student_id, batches(batch_name, semester)')
+    .select('id, student_id, full_name, batches(batch_name, semester)')
     .order('updated_at', { ascending: false })
 
   const profileIds = (profiles || []).map((p: any) => p.id)
@@ -50,11 +50,10 @@ export default async function StudentTrackingPage() {
   }
 
   const mappedStudents = (profiles || []).map((p: any) => {
-    const semesterInt = parseInt(String(p?.batches?.semester), 10)
     return {
       id: p.id,
       registration_number: p.student_id,
-      semester: Number.isFinite(semesterInt) ? semesterInt : 1,
+      name: p.full_name || null,
       batches: { batch_name: p?.batches?.batch_name },
       fee_submissions: groupedByStudent.get(p.id) || [],
     }

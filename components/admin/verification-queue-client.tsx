@@ -125,7 +125,12 @@ export function VerificationQueueClient({
           target_table: 'fee_submissions',
           target_id: submissionId,
           batch_id: submission.batch_id,
-          new_value: { status: 'Rejected', reason },
+          new_value: {
+            status: 'Rejected',
+            reason,
+            submission_id: submissionId,
+            student_id: submission.student_id,
+          },
         })
       }
 
@@ -209,7 +214,7 @@ export function VerificationQueueClient({
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Amount</p>
-                      <p className="font-medium text-gray-900">Rs. {submission.amount}</p>
+                      <p className="font-medium text-gray-900">Tk.. {submission.amount}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Bank</p>

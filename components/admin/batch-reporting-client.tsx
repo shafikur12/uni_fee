@@ -122,7 +122,7 @@ export function BatchReportingClient({ batches }: BatchReportingClientProps) {
         b.pending,
         b.rejected,
         `${b.approvalRate}%`,
-        `Rs. ${b.totalAmount}`,
+        `Tk.. ${b.totalAmount}`,
       ]),
     ]
       .map((row) => row.join(','))
@@ -236,7 +236,7 @@ export function BatchReportingClient({ batches }: BatchReportingClientProps) {
                         </span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-gray-900">{batch.approvalRate}%</td>
-                      <td className="px-4 py-3 text-gray-900">Rs. {batch.totalAmount}</td>
+                      <td className="px-4 py-3 text-gray-900">Tk.. {batch.totalAmount}</td>
                     </tr>
                   ))}
                 </tbody>
