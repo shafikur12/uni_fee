@@ -30,6 +30,7 @@ interface AuditLogsClientProps {
 
 export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc')
 
   const latestBySubmission = new Map<string, AuditLog>()
   for (const log of initialLogs) {
@@ -91,6 +92,12 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
     }))
   }
 
+  const sortedLogs = [...filteredLogs].sort((a, b) => {
+    const aTime = new Date(a.timestamp).getTime()
+    const bTime = new Date(b.timestamp).getTime()
+    return sortOrder === 'asc' ? aTime - bTime : bTime - aTime
+  })
+
   return (
     <div className="space-y-6">
       <div>
@@ -98,12 +105,25 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
         <p className="text-gray-600 mt-2">Track all system actions and changes</p>
       </div>
 
-      <Input
-        placeholder="Search by action, entity, or student..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="max-w-md"
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Input
+          placeholder="Search by action, entity, or student..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+        />
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <span>Sort:</span>
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+            className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+          >
+            <option value="desc">Newest first</option>
+            <option value="asc">Oldest first</option>
+          </select>
+        </div>
+      </div>
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
@@ -138,7 +158,7 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log) => {
+                sortedLogs.map((log) => {
                   const details = pickDetails(log)
                   const statusItem = details.find((item) => item.key === 'status')
                   const isRejected =
