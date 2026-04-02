@@ -31,7 +31,23 @@ interface AuditLogsClientProps {
 export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
+  const latestBySubmission = new Map<string, AuditLog>()
+  for (const log of initialLogs) {
+    const submissionId = (log as any).submission_target_id || log.target_id || null
+    if (log.target_table === 'fee_submissions' && submissionId) {
+      const existing = latestBySubmission.get(submissionId)
+      if (!existing || new Date(log.timestamp).getTime() > new Date(existing.timestamp).getTime()) {
+        latestBySubmission.set(submissionId, log)
+      }
+    }
+  }
+
   const filteredLogs = initialLogs.filter((log) => {
+    const submissionId = (log as any).submission_target_id || log.target_id || null
+    if (log.target_table === 'fee_submissions' && submissionId) {
+      const latest = latestBySubmission.get(submissionId)
+      if (latest && latest.id !== log.id) return false
+    }
     const query = searchTerm.toLowerCase()
     return (
       log.action_type.toLowerCase().includes(query) ||
