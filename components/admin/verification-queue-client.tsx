@@ -105,33 +105,15 @@ export function VerificationQueueClient({
     setError('')
 
     try {
-      const { error: updateError } = await supabase
-        .from('fee_submissions')
-        .update({
-          status: 'Rejected',
-          rejection_reason: reason,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: userId,
-        })
-        .eq('id', submissionId)
+      const response = await fetch('/api/admin/fee-submissions/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submissionId, actorId: userId, reason }),
+      })
 
-      if (updateError) throw updateError
-
-      const submission = submissions.find((s) => s.id === submissionId)
-      if (submission) {
-        await supabase.from('audit_logs').insert({
-          actor_id: userId,
-          action_type: 'reject',
-          target_table: 'fee_submissions',
-          target_id: submissionId,
-          batch_id: submission.batch_id,
-          new_value: {
-            status: 'Rejected',
-            reason,
-            submission_id: submissionId,
-            student_id: submission.student_id,
-          },
-        })
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result?.error || 'Failed to reject submission')
       }
 
       setSubmissions(submissions.filter((s) => s.id !== submissionId))
