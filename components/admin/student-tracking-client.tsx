@@ -123,6 +123,7 @@ export function StudentTrackingClient({ students: initialStudents }: StudentTrac
               ) : (
                 filteredStudents.map((student) => {
                   const approved = student.fee_submissions?.filter((f) => f.status === 'Approved') || []
+                  const submissionCount = student.fee_submissions?.length || 0
                   const isEligible = approved.length > 0
 
                   return (
@@ -137,10 +138,12 @@ export function StudentTrackingClient({ students: initialStudents }: StudentTrac
                         {student.batches?.batch_name || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                        {student.fee_submissions?.length || 0} submissions
+                        {submissionCount} submissions
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {approved.length > 0 ? (
+                        {submissionCount === 0 ? (
+                          <Badge className="bg-blue-100 text-blue-800">Active</Badge>
+                        ) : approved.length > 0 ? (
                           <Badge className="bg-green-100 text-green-800">
                             {approved.length} Approved
                           </Badge>
@@ -149,15 +152,19 @@ export function StudentTrackingClient({ students: initialStudents }: StudentTrac
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge
-                          className={
-                            isEligible
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }
-                        >
-                          {isEligible ? 'Yes' : 'No'}
-                        </Badge>
+                        {submissionCount === 0 ? (
+                          <Badge className="bg-gray-100 text-gray-700">N/A</Badge>
+                        ) : (
+                          <Badge
+                            className={
+                              isEligible
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }
+                          >
+                            {isEligible ? 'Yes' : 'No'}
+                          </Badge>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Button

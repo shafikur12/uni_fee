@@ -168,6 +168,7 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
                     statusItem && String(statusItem.value).toLowerCase() === 'pending'
                   const resolvedSubmissionId = log.submission_target_id || log.target_id || null
                   const isSubmission = !!resolvedSubmissionId
+                  const canViewSubmission = Boolean(log.submission_reference?.id)
                   const fallbackEmail =
                     (log.new_value && log.new_value.student_email) ||
                     (log.old_value && log.old_value.student_email) ||
@@ -220,12 +221,18 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {isSubmission ? (
-                          <Link
-                            className="text-indigo-600 hover:text-indigo-700"
-                            href={`/admin/submissions/${resolvedSubmissionId}`}
-                          >
-                            View
-                          </Link>
+                          canViewSubmission ? (
+                            <Link
+                              className="text-indigo-600 hover:text-indigo-700"
+                              href={`/admin/submissions/${resolvedSubmissionId}`}
+                            >
+                              View
+                            </Link>
+                          ) : (
+                            <span className="text-gray-400 cursor-not-allowed select-none">
+                              View
+                            </span>
+                          )
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
