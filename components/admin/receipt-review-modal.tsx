@@ -184,7 +184,7 @@ export function ReceiptReviewModal({
                   <div>
                     <p className="text-gray-600">Required Amount</p>
                     <p className="font-medium text-gray-900">
-                      Tk.. {submission.batches.fee_amount}
+                      Tk. {submission.batches.fee_amount}
                     </p>
                   </div>
                 </div>
@@ -195,7 +195,7 @@ export function ReceiptReviewModal({
                 <div className="space-y-2 text-sm">
                   <div>
                     <p className="text-gray-600">Submitted Amount</p>
-                    <p className="font-medium text-gray-900">Tk.. {submission.amount}</p>
+                    <p className="font-medium text-gray-900">Tk. {submission.amount}</p>
                   </div>
                   <div>
                     <p className="text-gray-600">Bank</p>

@@ -110,7 +110,7 @@ export function StudentDashboardClient({
             </div>
             <div>
               <p className="text-sm text-gray-600">Fee Amount</p>
-              <p className="text-lg font-semibold text-gray-900">Tk.. {batch.fee_amount}</p>
+              <p className="text-lg font-semibold text-gray-900">Tk. {batch.fee_amount}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Fee Deadline</p>
