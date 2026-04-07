@@ -8,9 +8,15 @@ import Link from 'next/link'
 
 interface SubmissionDetailPageClientProps {
   submissionId: string
+  backHref?: string
+  backLabel?: string
 }
 
-export function SubmissionDetailPageClient({ submissionId }: SubmissionDetailPageClientProps) {
+export function SubmissionDetailPageClient({
+  submissionId,
+  backHref = '/admin/audit-logs',
+  backLabel = 'Back to Audit Logs',
+}: SubmissionDetailPageClientProps) {
   const [submission, setSubmission] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -40,10 +46,10 @@ export function SubmissionDetailPageClient({ submissionId }: SubmissionDetailPag
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/admin/audit-logs">
+        <Link href={backHref}>
           <Button variant="outline" size="sm">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Audit Logs
+            {backLabel}
           </Button>
         </Link>
       </div>
