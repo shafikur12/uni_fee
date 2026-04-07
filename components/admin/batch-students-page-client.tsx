@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { AlertCircle, ArrowLeft, Loader2, Pencil, Trash2, Upload, UserMinus } from 'lucide-react'
+import Link from 'next/link'
 
 interface Batch {
   id: string
@@ -257,19 +258,17 @@ export function BatchStudentsPageClient({
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => (window.location.href = '/admin/batches')}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/batches">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Link>
           </Button>
           <h1 className="text-3xl font-bold text-gray-900 mt-3">
             {batch.batch_name} Students
           </h1>
           <p className="text-gray-600 mt-1">
-            {batch.batch_code} • {batch.academic_year} • Sem {batch.semester}
+            {batch.batch_code} • {batch.academic_year}
           </p>
         </div>
         <Badge
@@ -470,8 +469,8 @@ export function BatchStudentsPageClient({
       </Card>
 
       {editingStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md bg-white shadow-lg">
             <div className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Student</h2>
               <div className="space-y-4">

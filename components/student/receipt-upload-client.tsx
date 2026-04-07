@@ -189,7 +189,7 @@ export function ReceiptUploadClient({ student, userId }: ReceiptUploadClientProp
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Upload Payment Receipt</h1>
         <p className="text-gray-600 mt-2">
-          Batch: {student.batches?.batch_name} | Fee: Tk. {student.batches?.fee_amount}
+          Batch: {student.batches?.batch_name}
         </p>
       </div>
 

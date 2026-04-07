@@ -23,20 +23,11 @@ interface AdminDashboardClientProps {
     approvedSubmissions: number
     totalBatches: number
   }
+  chartData: Array<{ name: string; submissions: number; approvals: number }>
   userRole: string
 }
 
-const sampleData = [
-  { name: 'Mon', submissions: 45, approvals: 30 },
-  { name: 'Tue', submissions: 52, approvals: 38 },
-  { name: 'Wed', submissions: 48, approvals: 32 },
-  { name: 'Thu', submissions: 61, approvals: 45 },
-  { name: 'Fri', submissions: 55, approvals: 40 },
-  { name: 'Sat', submissions: 32, approvals: 25 },
-  { name: 'Sun', submissions: 28, approvals: 18 },
-]
-
-export function AdminDashboardClient({ metrics, userRole }: AdminDashboardClientProps) {
+export function AdminDashboardClient({ metrics, chartData, userRole }: AdminDashboardClientProps) {
   const rejectedSubmissions = metrics.totalSubmissions - metrics.pendingSubmissions - metrics.approvedSubmissions
 
   return (
@@ -137,7 +128,7 @@ export function AdminDashboardClient({ metrics, userRole }: AdminDashboardClient
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Weekly Submissions</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={sampleData}>
+            <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
@@ -152,7 +143,7 @@ export function AdminDashboardClient({ metrics, userRole }: AdminDashboardClient
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Approval Trend</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={sampleData}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />

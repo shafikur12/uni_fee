@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, XCircle, Clock, Eye } from 'lucide-react'
-import { useState } from 'react'
+import { CheckCircle2, XCircle, Clock, Eye, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
 interface Submission {
   id: string
@@ -18,8 +18,6 @@ interface Submission {
 }
 
 export function SubmissionHistoryClient({ submissions }: { submissions: Submission[] }) {
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
-
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'approved':
@@ -65,16 +63,8 @@ export function SubmissionHistoryClient({ submissions }: { submissions: Submissi
       ) : (
         <div className="space-y-3">
           {submissions.map((submission) => (
-            <Card
-              key={submission.id}
-              className="p-4 cursor-pointer hover:shadow-md transition"
-              onClick={() =>
-                setSelectedSubmission(
-                  selectedSubmission?.id === submission.id ? null : submission
-                )
-              }
-            >
-              <div className="flex items-center justify-between">
+            <Card key={submission.id} className="p-4 hover:shadow-md transition">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-4">
                   {getStatusIcon(submission.status)}
                   <div>
@@ -82,55 +72,24 @@ export function SubmissionHistoryClient({ submissions }: { submissions: Submissi
                       {submission.batches?.batch_name}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Tk. {submission.amount} •{' '}
+                      Tk. {submission.amount} ·{' '}
                       {new Date(submission.submission_date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <Badge className={getStatusColor(submission.status)}>
-                  {submission.status}
-                </Badge>
-              </div>
-
-              {selectedSubmission?.id === submission.id && (
-                <div className="mt-4 pt-4 border-t space-y-3">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                    <div>
-                      <p className="text-gray-600">Submitted</p>
-                      <p className="font-medium text-gray-900">
-                        {new Date(submission.submission_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Amount</p>
-                      <p className="font-medium text-gray-900">Tk. {submission.amount}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Status</p>
-                      <p className="font-medium text-gray-900">{submission.status}</p>
-                    </div>
-                    {submission.verified_at && (
-                      <div>
-                        <p className="text-gray-600">Verified</p>
-                        <p className="font-medium text-gray-900">
-                          {new Date(submission.verified_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {submission.rejection_reason && (
-                    <div className="bg-red-50 border border-red-200 rounded p-3">
-                      <p className="text-sm font-medium text-red-700 mb-1">
-                        Rejection Reason
-                      </p>
-                      <p className="text-sm text-red-600">
-                        {submission.rejection_reason}
-                      </p>
-                    </div>
-                  )}
+                <div className="flex items-center gap-3">
+                  <Badge className={getStatusColor(submission.status)}>
+                    {submission.status}
+                  </Badge>
+                  <Link
+                    href={`/student/history/${submission.id}`}
+                    className="text-indigo-600 hover:text-indigo-700 text-sm font-medium inline-flex items-center"
+                  >
+                    More
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </Link>
                 </div>
-              )}
+              </div>
             </Card>
           ))}
         </div>

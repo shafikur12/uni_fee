@@ -5,13 +5,6 @@ import { createClient } from '@/lib/supabase/client'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import {
   AlertCircle,
@@ -24,6 +17,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { BatchCreateModal } from './batch-create-modal'
+import Link from 'next/link'
 
 interface Batch {
   id: string
@@ -51,6 +45,7 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
   const [editAcademicYear, setEditAcademicYear] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingBatchId, setLoadingBatchId] = useState<string | null>(null)
+  const [deleteBatchId, setDeleteBatchId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const supabase = createClient()
@@ -156,10 +151,6 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
   }
 
   const handleDeleteBatch = async (batchId: string) => {
-    if (!window.confirm('Are you sure you want to delete this batch? This action cannot be undone.')) {
-      return
-    }
-
     setLoading(true)
     setError('')
 
@@ -183,6 +174,7 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
       setError('Failed to delete batch')
     } finally {
       setLoading(false)
+      setDeleteBatchId(null)
     }
   }
 
@@ -240,13 +232,7 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
                   Code
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Year/Sem
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Fee Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Deadline
+                  Academic Year
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Status
@@ -259,7 +245,7 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
             <tbody className="divide-y divide-gray-200">
               {batches.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-600">
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-600">
                     No batches created yet
                   </td>
                 </tr>
@@ -276,15 +262,7 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="text-sm text-gray-600">
-                        {batch.academic_year} / Sem {batch.semester}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="font-medium text-gray-900">Tk.. {batch.fee_amount}</p>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-600">
-                        {new Date(batch.fee_deadline).toLocaleDateString()}
+                        {batch.academic_year || 'N/A'}
                       </p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -299,16 +277,11 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
                       </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap space-x-2">
-                      <Button
-                        onClick={() => {
-                          window.location.href = `/admin/batches/${batch.id}`
-                        }}
-                        variant="outline"
-                        size="sm"
-                        title="View students"
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        Students
+                      <Button asChild variant="outline" size="sm" title="View students">
+                        <Link href={`/admin/batches/${batch.id}`}>
+                          <Users className="w-4 h-4 mr-2" />
+                          Students
+                        </Link>
                       </Button>
                       <Button
                         onClick={() => openEditModal(batch)}
@@ -348,7 +321,7 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
                         </Button>
                       )}
                       <Button
-                        onClick={() => handleDeleteBatch(batch.id)}
+                        onClick={() => setDeleteBatchId(batch.id)}
                         variant="outline"
                         size="sm"
                         title="Delete batch"
@@ -375,8 +348,8 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
 
 
       {editingBatch && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md bg-white shadow-lg">
             <div className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Update Batch</h2>
               <form onSubmit={handleUpdateBatch} className="space-y-4">
@@ -439,6 +412,45 @@ export function BatchManagementClient({ batches: initialBatches, userId }: Batch
                   </Button>
                 </div>
               </form>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {deleteBatchId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md bg-white shadow-lg">
+            <div className="p-6 space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Delete batch?</h2>
+                <p className="text-sm text-gray-600 mt-2">
+                  This action cannot be undone. All batch data will be removed.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setDeleteBatchId(null)}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                  disabled={loading}
+                  onClick={() => handleDeleteBatch(deleteBatchId)}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
+                </Button>
+              </div>
             </div>
           </Card>
         </div>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { Card } from '@/components/ui/card'
@@ -49,6 +49,8 @@ export function ReceiptReviewModal({
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [zoom, setZoom] = useState(1)
   const receipt = submission.uploaded_receipts?.[0]
+  const hasRequiredAmount =
+    typeof submission.batches?.fee_amount === 'number' && submission.batches.fee_amount > 0
 
   const directUrl = receipt?.file_url?.trim() || null
   const receiptSrc = directUrl
@@ -181,12 +183,14 @@ export function ReceiptReviewModal({
                       {submission.batches.batch_name}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-gray-600">Required Amount</p>
-                    <p className="font-medium text-gray-900">
-                      Tk. {submission.batches.fee_amount}
-                    </p>
-                  </div>
+                  {hasRequiredAmount && (
+                    <div>
+                      <p className="text-gray-600">Required Amount</p>
+                      <p className="font-medium text-gray-900">
+                        Tk. {submission.batches.fee_amount}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -223,20 +227,21 @@ export function ReceiptReviewModal({
               </div>
 
               {/* Amount Check */}
-              {submission.amount >= submission.batches.fee_amount ? (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm text-green-700">
-                    ✓ Amount is sufficient for batch fees
-                  </p>
-                </div>
-              ) : (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-700">
-                    ⚠ Amount is less than required (Short by Rs.{' '}
-                    {submission.batches.fee_amount - submission.amount})
-                  </p>
-                </div>
-              )}
+              {hasRequiredAmount &&
+                (submission.amount >= submission.batches.fee_amount ? (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700">
+                      Amount is sufficient for batch fees
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-700">
+                      Amount is less than required (Short by Tk.{' '}
+                      {submission.batches.fee_amount - submission.amount})
+                    </p>
+                  </div>
+                ))}
             </div>
           </div>
 

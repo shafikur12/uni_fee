@@ -39,9 +39,6 @@ interface Student {
   semester: number
   batches: {
     batch_name: string
-    fee_amount: number
-    fee_deadline: string
-    late_fee_percentage: number
   }
 }
 
@@ -85,13 +82,6 @@ export function StudentDashboardClient({
     }
   }
 
-  const daysUntilDeadline = batch
-    ? Math.ceil(
-        (new Date(batch.fee_deadline).getTime() - new Date().getTime()) /
-          (1000 * 60 * 60 * 24)
-      )
-    : null
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -107,33 +97,6 @@ export function StudentDashboardClient({
             <div>
               <p className="text-sm text-gray-600">Batch</p>
               <p className="text-lg font-semibold text-gray-900">{batch.batch_name}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Fee Amount</p>
-              <p className="text-lg font-semibold text-gray-900">Tk. {batch.fee_amount}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Fee Deadline</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {new Date(batch.fee_deadline).toLocaleDateString()}
-              </p>
-              {daysUntilDeadline !== null && (
-                <p
-                  className={`text-sm mt-1 ${
-                    daysUntilDeadline <= 7 ? 'text-red-600' : 'text-green-600'
-                  }`}
-                >
-                  {daysUntilDeadline > 0
-                    ? `${daysUntilDeadline} days remaining`
-                    : 'Deadline passed'}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Late Fee</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {batch.late_fee_percentage}%
-              </p>
             </div>
           </div>
         </Card>

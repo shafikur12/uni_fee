@@ -168,7 +168,10 @@ export function AuditLogsClient({ logs: initialLogs }: AuditLogsClientProps) {
                     statusItem && String(statusItem.value).toLowerCase() === 'pending'
                   const resolvedSubmissionId = log.submission_target_id || log.target_id || null
                   const isSubmission = !!resolvedSubmissionId
-                  const canViewSubmission = Boolean(log.submission_reference?.id)
+                  const isDeleted =
+                    log.action_type.toLowerCase() === 'delete' ||
+                    (statusItem && String(statusItem.value).toLowerCase() === 'deleted')
+                  const canViewSubmission = Boolean(resolvedSubmissionId && !isDeleted)
                   const fallbackEmail =
                     (log.new_value && log.new_value.student_email) ||
                     (log.old_value && log.old_value.student_email) ||
