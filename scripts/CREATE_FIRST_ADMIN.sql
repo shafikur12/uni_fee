@@ -8,14 +8,13 @@
 
 -- Step 3: Run this query:
 
-INSERT INTO public.staff_profiles (user_id, full_name, email, role)
+INSERT INTO public.staff_profiles (id, role, department)
 VALUES (
   'USER_ID_FROM_SUPABASE',
-  'System Administrator',
-  'admin@university.edu',
-  'Admin'
+  'Admin',
+  'Administration'
 )
-ON CONFLICT (user_id) DO NOTHING;
+ON CONFLICT (id) DO NOTHING;
 
 -- Verify the admin was created:
-SELECT * FROM public.staff_profiles WHERE email = 'admin@university.edu';
+SELECT * FROM public.staff_profiles WHERE role = 'Admin';
